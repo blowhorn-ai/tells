@@ -73,7 +73,7 @@ export function ratio(a, b) {
 }
 
 export const TEXT = ["good", "warn-ink", "bad", "ink", "ink-soft", "ink-muted", "link"];
-export const GRAPHIC = ["good", "warn", "warn-ink", "bad", "subtle"];
+export const GRAPHIC = ["good", "warn", "warn-ink", "bad", "subtle", "line-strong", "accent", "ink-muted"];
 export const STATUS = ["good", "warn", "warn-ink", "bad"];
 
 function surfaces(table) {

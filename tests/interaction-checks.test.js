@@ -47,7 +47,7 @@ function status(rep, id) {
 describe("interaction check thresholds", () => {
   it("is the single source of thresholds and check ids, in report order", () => {
     expect(INTERACTION_CHECK_IDS).toHaveLength(13);
-    expect(INTERACTION_THRESHOLDS.centrePassPx).toBe(1);
+    expect(INTERACTION_THRESHOLDS.centrePassPx).toBe(1.5);
     expect(evaluateInteractionChecks(report()).map((check) => check.id)).toEqual(INTERACTION_CHECK_IDS);
   });
 
@@ -107,7 +107,10 @@ describe("interaction check thresholds", () => {
   it.each([
     [0.4, "fail"],
     [0.7, "warn"],
-    [1.5, "pass"]
+    // An exact-centre click quantised to (-0.1, -1) reads 1.005 px off: still a warn, not a pass.
+    [Math.hypot(0.1, 1), "warn"],
+    [Math.SQRT2, "warn"],
+    [1.6, "pass"]
   ])("int_centre: farthest click %d px from centre is %s", (distance, expected) => {
     expect(status(report({ clicks: [click({ offsetFromCentre: { dx: distance, dy: 0 } })] }), "int_centre")).toBe(expected);
   });

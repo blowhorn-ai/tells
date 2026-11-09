@@ -135,6 +135,7 @@ body {
   overflow-x: hidden;
 }
 
+/* The brand ambient page backdrop behind everything, not a card surface; cards stay flat on top of it. */
 .ambient-grid {
   position: fixed;
   inset: 0;
@@ -945,9 +946,7 @@ td code {
   gap: 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--ink) 4%, transparent), transparent),
-    repeating-linear-gradient(0deg, color-mix(in srgb, var(--ink-muted) 8%, transparent) 0 1px, transparent 1px 25%);
+  background: var(--surface-raised);
   padding: 12px;
 }
 
@@ -974,9 +973,11 @@ td code {
   overflow: visible;
 }
 
+/* Flat chart: solid gridlines in --line-strong (3:1 on the raised surface in both themes). */
 .memory-chart line {
-  stroke: color-mix(in srgb, var(--ink-muted) 16%, transparent);
-  stroke-width: 0.35;
+  stroke: var(--line-strong);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
 }
 
 .memory-chart polyline {
@@ -989,8 +990,10 @@ td code {
   stroke: var(--accent);
 }
 
+/* Total heap is a reference line, not a failure: muted and dashed, so the two lines differ by more than colour. */
 .memory-chart .line-total {
-  stroke: var(--bad);
+  stroke: var(--ink-muted);
+  stroke-dasharray: 4 3;
 }
 
 .chart-legend span::before {
@@ -1004,7 +1007,8 @@ td code {
 }
 
 .chart-legend .line-used { color: var(--accent); }
-.chart-legend .line-total { color: var(--bad); }
+.chart-legend .line-total { color: var(--ink-muted); }
+.chart-legend .line-total::before { height: 0; border-top: 3px dashed currentColor; background: none; }
 
 .chart-legend code {
   flex: 1 1 100%;
@@ -1098,18 +1102,15 @@ td code {
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background:
-    radial-gradient(circle at center, color-mix(in srgb, var(--accent) 11%, transparent), transparent 46%),
-    linear-gradient(180deg, color-mix(in srgb, var(--ink) 4%, transparent), color-mix(in srgb, var(--surface-deep) 24%, transparent));
+  background: var(--surface-raised);
 }
 
 .sensor-device {
   width: 42px;
   height: 74px;
-  border: 1px solid color-mix(in srgb, var(--accent) 72%, transparent);
+  border: 2px solid var(--accent);
   border-radius: var(--radius-md);
-  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 68%, transparent), color-mix(in srgb, var(--accent-3) 20%, transparent));
-  box-shadow: 0 12px 38px color-mix(in srgb, var(--accent) 20%, transparent);
+  background: var(--surface-tint);
   transform: rotateX(calc(var(--tilt-y) * 35deg)) rotateZ(calc(var(--tilt-x) * 45deg));
 }
 
@@ -1120,12 +1121,12 @@ td code {
   width: 170px;
   height: 2px;
   transform-origin: left center;
-  background: color-mix(in srgb, var(--accent-2) 70%, transparent);
+  background: var(--ink-muted);
 }
 
 .sensor-axis-y {
   width: 130px;
-  background: color-mix(in srgb, var(--accent) 74%, transparent);
+  background: var(--accent);
   transform: rotate(135deg);
 }
 
