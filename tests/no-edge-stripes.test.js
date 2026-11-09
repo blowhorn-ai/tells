@@ -16,11 +16,16 @@ const px = (value) => {
   return Math.abs(Number(match[1])) * (match[2] === "rem" || match[2] === "em" ? 16 : 1);
 };
 
+// The element that draws the edge is the subject of the selector (its last compound), not an ancestor:
+// `.challenge-panel .challenge-toggle-icon::before` is a chevron inside a panel, not a panel's edge.
+const subjectOf = (selector) => selector.trim().split(/\s*[>+~]\s*|\s+/).pop();
+const isTarget = (rawSelector) => rawSelector.split(",").some((part) => TARGET.test(subjectOf(part)));
+
 export function edgeStripes(css) {
   const found = [];
   for (const [, rawSelector, body] of css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
     const selector = rawSelector.trim();
-    if (!TARGET.test(selector)) continue;
+    if (!isTarget(selector)) continue;
     for (const [, prop, value] of body.matchAll(new RegExp(`(border-${SIDE}(?:-width)?)\\s*:\\s*([^;]+)`, "g"))) {
       if (/^(0|none)\b/.test(value.trim()) || /transparent/.test(value)) continue;
       if (px(value) > 1) found.push(`${selector}: ${prop}: ${value.trim()}`);
@@ -57,6 +62,7 @@ describe("no one-edge accent stripes", () => {
       .quote::before { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 3px; background: var(--teal); }
       .check-item { border-bottom: 1px solid var(--line); }
       .site-header { box-shadow: inset 0 -1px 0 0 var(--glass-edge); }
+      .challenge-panel .challenge-toggle-icon::before { border-right: 2px solid var(--accent); border-bottom: 2px solid var(--accent); }
     `)).toHaveLength(3);
   });
 

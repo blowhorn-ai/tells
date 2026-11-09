@@ -169,7 +169,11 @@ test("a slower inspection started before Submit does not overwrite the verdict f
   await (await olderResponse).finished();
   await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 250)));
   expect(await reported()).toBe(true);
-  await expect(page.locator("#coverageTable tbody tr", { hasText: "Interaction" })).not.toContainText("not taken");
+  // The Interaction check row: "not taken" is a raw observed value, so it lives in the row's details.
+  const interactionRow = page.locator("#checks .check-item", { has: page.locator(".check-name", { hasText: /^Interaction$/ }) });
+  await expect(interactionRow).toHaveCount(1);
+  await expect(interactionRow.locator(".check-state")).not.toHaveText("Not available");
+  await expect(interactionRow.locator(".check-detail")).not.toContainText("not taken");
   await expect(page.locator("#runBtn")).toBeEnabled();
 });
 

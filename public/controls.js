@@ -1,7 +1,7 @@
 import { $ } from "./dom.js";
 
 export function setupButtons(state, runChecks, setStatus) {
-  const panels = [...document.querySelectorAll(".masonry > details.panel")];
+  const panels = [...document.querySelectorAll(".panel-grid > details.panel")];
   const expandAllBtn = $("#expandAllBtn");
   const collapseAllBtn = $("#collapseAllBtn");
   function updatePanelButtons() {
