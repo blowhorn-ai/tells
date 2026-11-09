@@ -87,7 +87,8 @@ test("human-like input is not failed by any raw check", async ({ page }) => {
 test("Playwright API clicks and fill are caught by the press, centre and key checks", async ({ page }) => {
   const row = await runFamily(page, "playwright api", () => createPlaywrightDriver(page).run());
   expect(row.interaction.task.completed).toBe(true);
-  // Playwright aims at the exact centre, so every click is within 1 px: warn, or fail when within 0.5 px.
+  // Playwright aims at the exact centre; rounding moves it at most 1.41 px, inside the 1.5 px pass line:
+  // warn, or fail when within 0.5 px.
   expect(["warn", "fail"]).toContain(row.statuses.int_centre);
   // page.click() sends the press and release back to back with no hold. The gap measured is scheduling
   // alone: under 10 ms (fail) on an idle machine, 10 to 30 ms (the warn band) under load. Never a pass.
@@ -100,9 +101,11 @@ test("raw CDP mouse events (no moves) and insertText are caught", async ({ page,
   const cdp = await context.newCDPSession(page);
   const row = await runFamily(page, "raw cdp", () => createCdpDriver(page, cdp).run());
   expect(row.interaction.task.completed).toBe(true);
-  // Chromium synthesizes one pointer move to the press point, so the raw press has 1 sample, not 0: a warn.
+  // No mouseMoved is sent. Chromium may synthesize one move to the press point (1 sample, a warn) or
+  // none when press and release arrive together (0 samples, a fail). Never a pass.
   expect(["warn", "fail"]).toContain(row.statuses.int_premove);
-  // Presses here last 10 to 30 ms (CDP round trips), the warn band; Playwright's own clicks are under 10 ms.
+  // Press and release go out back to back (support/interaction-drivers.js), so the press is the browser's
+  // handling time: under 10 ms (fail) idle, the warn band under load. Never a pass.
   expect(["warn", "fail"]).toContain(row.statuses.int_press);
   expect(row.statuses.int_key_chain).toBe("fail");
   expectWorkerAgreesWithPage(row);

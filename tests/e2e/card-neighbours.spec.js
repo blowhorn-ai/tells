@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { readdirSync } from "node:fs";
 import { stubSharedCards } from "./support/cards.js";
 
 // No two cards that sit next to each other share a variant (the blowhorn.ai DESIGN.md, "Cards"). Neighbours come
@@ -70,3 +71,24 @@ for (const colorScheme of ["dark", "light"]) {
     });
   }
 }
+
+// Beyond neighbours: a doc page with no more sections than there are card variants (five; glass is
+// reserved for floating surfaces) uses each variant once, so no two of its sections look alike even
+// far apart. Longer pages can only keep neighbours apart. The site footer is chrome, not a section.
+const DOC_PAGES = ["/checks/", "/agents/", ...readdirSync(new URL("../../public/checks/", import.meta.url), { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => `/checks/${entry.name}/`)];
+
+test("doc pages with five sections or fewer give each section its own variant", async ({ page }) => {
+  const short = [];
+  for (const path of DOC_PAGES) {
+    await page.goto(path);
+    const variants = await page.locator("main .card").evaluateAll((cards) => cards.map((card) => [...card.classList].find((name) => /^card-[a-z]+$/.test(name))));
+    expect(variants.length, path).toBeGreaterThan(0);
+    if (variants.length > 5) continue;
+    short.push(path);
+    const repeated = variants.filter((variant, i) => variants.indexOf(variant) !== i);
+    expect(repeated, `${path}: ${variants.join(", ")}`).toEqual([]);
+  }
+  expect(short).toEqual(expect.arrayContaining(["/checks/", "/agents/"]));
+});
