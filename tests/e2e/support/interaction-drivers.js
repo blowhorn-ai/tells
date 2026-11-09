@@ -15,7 +15,7 @@ export const TARGET = {
   submit: '[data-tells-target="submit"]'
 };
 
-// The first report renders a checks table above the drill. Wait for it to finish, so the
+// The first report renders the Checks performed list above the drill. Wait for it to finish, so the
 // drill's positions do not move under a driver that is already aiming at them.
 export async function openDrill(page) {
   const firstReport = page.waitForResponse((response) => response.request().method() === "POST" && response.url().endsWith("/api/report"));
@@ -124,8 +124,12 @@ export async function cdpClick(page, cdp, selector, clickCount = 1) {
   await page.locator(selector).scrollIntoViewIfNeeded();
   const box = await page.locator(selector).boundingBox();
   const base = { x: box.x + box.width / 2, y: box.y + box.height / 2, button: "left", clickCount };
-  await cdp.send("Input.dispatchMouseEvent", { ...base, type: "mousePressed" });
-  await cdp.send("Input.dispatchMouseEvent", { ...base, type: "mouseReleased" });
+  // Both sent before either is awaited: CDP keeps them in order, and the press lasts as long as the
+  // browser takes to handle it, not two round trips, which stretch past 30 ms on a loaded machine.
+  await Promise.all([
+    cdp.send("Input.dispatchMouseEvent", { ...base, type: "mousePressed" }),
+    cdp.send("Input.dispatchMouseEvent", { ...base, type: "mouseReleased" })
+  ]);
 }
 
 // C: synthetic. Script-made clicks, key events and a value assignment.

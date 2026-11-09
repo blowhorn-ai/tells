@@ -129,6 +129,17 @@ function collectPingPerformanceMemory(searchParams) {
   };
 }
 
+// Every reason id analyzeHeaders can report. scoreReport re-scores them, so they are part of REASON_IDS.
+export const HEADER_REASON_IDS = Object.freeze([
+  "missing_user_agent",
+  "automation_user_agent",
+  "missing_accept",
+  "missing_accept_language",
+  "missing_client_hints",
+  "body_without_content_type",
+  "library_user_agent"
+]);
+
 function analyzeHeaders(headers, ua) {
   const reasons = [];
   const lowerUa = ua.toLowerCase();

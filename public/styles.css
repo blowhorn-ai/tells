@@ -1,5 +1,13 @@
 :root {
   color-scheme: dark light;
+  font-family: var(--sans);
+}
+
+/* The dark token set. The dispatch card (cards.css) is near-black in both themes, so it
+   carries these tokens in the light theme too: anything inside it that reads --ink,
+   --good, --warn-ink and so on stays legible without a per-component override. */
+:root,
+.card-dispatch {
   --teal: #00B39F;
   --teal-bright: #00D3A9;
   --teal-shade: #008F80;
@@ -36,7 +44,8 @@
 
   --good: #6AE3B6;
   --warn: #FFD86B;
-  --bad: #FF6A7A;
+  --bad: #FF7A88;
+  --warn-ink: var(--warn);
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -63,8 +72,9 @@
   --accent-2: var(--yellow);
   --accent-3: var(--teal);
   --shadow: var(--glass-shadow);
-  font-family: var(--sans);
 }
+
+.card-dispatch { color-scheme: dark; }
 
 @media (prefers-color-scheme: light) {
   :root {
@@ -92,9 +102,12 @@
     --good: #00756A;
     --warn: #8A6C00;
     --bad: #C42B3C;
+    /* Warn as text and icons. --warn (#8A6C00) is under 4.5:1 on --surface-raised and the
+       yellow ambient wash, so text and icons use this; --warn stays for borders and the gauge. */
+    --warn-ink: #6E5600;
     --subtle: #5B6A70;
     --accent: var(--teal-deep);
-    --accent-2: #8A6C00;
+    --accent-2: var(--warn);
   }
 }
 
@@ -120,6 +133,7 @@ body {
   overflow-x: hidden;
 }
 
+/* The brand ambient page backdrop behind everything, not a card surface; cards stay flat on top of it. */
 .ambient-grid {
   position: fixed;
   inset: 0;
@@ -322,23 +336,18 @@ h3 {
   font-size: 1.08rem;
 }
 
-/* A side note for people testing scripts. A teal-tinted glass callout, the
-   same as blowhorn.ai's notices, so it never reads as a speech bubble with
-   no one speaking. Its edge is even on every side: a coloured stripe down one
-   edge, or a hard offset shadow, is the tell of a generated page and the brand
-   bans both (blowhorn internal/DESIGN.md, principle 15). */
+/* A side note for people testing scripts. Its surface and label come from the
+   card-dispatch variant (cards.css); this only sets the layout. Its edge is even
+   on every side: a coloured stripe down one edge, or a hard offset shadow, is the
+   tell of a generated page and the brand bans both (blowhorn internal/DESIGN.md,
+   principle 15). */
 .dev-note {
   max-width: 64ch;
   margin: 0 0 24px;
   padding: 14px 18px;
   border-radius: var(--radius-lg);
-  background:
-    linear-gradient(180deg, var(--glass-sheen), transparent 46%),
-    linear-gradient(120deg, color-mix(in srgb, var(--surface-tint) 70%, transparent), transparent 80%),
-    var(--glass-fill);
-  box-shadow: inset 0 1px 0 0 var(--glass-rim), 0 0 0 1px var(--glass-edge), var(--glass-shadow);
 }
-.dev-note p:last-child { margin: 0; color: var(--ink-soft); }
+.dev-note p:last-child { margin: 0; }
 
 .mascot-tile {
   overflow: hidden;
@@ -361,7 +370,7 @@ h3 {
 }
 
 /* ---------- Footer ----------
-   The blowhorn.ai footer, trimmed for a one-page tool: a glass panel with the
+   The blowhorn.ai footer, trimmed for a one-page tool: a card-plain panel with the
    brand and the privacy note up top, four short link columns, then a bottom
    bar with the copyright and the status pill. */
 .site-footer {
@@ -377,10 +386,6 @@ h3 {
   gap: 32px;
   padding: 32px 24px;
   border-radius: var(--radius-xl);
-  background: linear-gradient(180deg, var(--glass-sheen), transparent 46%), var(--glass-fill);
-  -webkit-backdrop-filter: blur(20px) saturate(170%);
-  backdrop-filter: blur(20px) saturate(170%);
-  box-shadow: inset 0 1px 0 0 var(--glass-rim), 0 0 0 1px var(--glass-edge), var(--glass-shadow);
 }
 
 .footer-top {
@@ -483,13 +488,13 @@ h3 {
   height: 1.15rem;
   padding: 0.2rem 0.4rem;
   border-radius: 0.75rem;
-  background: #484848;
-  color: #CCCCCC;
+  background: var(--surface-raised);
+  color: var(--ink-soft);
   font-size: 0.8rem;
   line-height: 1;
   text-decoration: none;
 }
-.status-link:hover { color: var(--teal-bright); }
+.status-link:hover { color: var(--link); }
 
 .pulse-icon {
   display: block;
@@ -527,120 +532,135 @@ h3 {
   min-width: 0;
 }
 
-.scanner-shell {
-  overflow: hidden;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-raised) 94%, transparent), color-mix(in srgb, var(--surface-deep) 94%, transparent)),
-    repeating-linear-gradient(0deg, transparent 0 8px, color-mix(in srgb, var(--accent) 5%, transparent) 8px 9px);
-  box-shadow: var(--shadow), inset 0 1px 0 color-mix(in srgb, var(--ink) 8%, transparent);
+/* The verdict card: the one readout of the result, in words first. The surface is the
+   card-stamp variant (cards.css); this sets the layout and the semantic colour of the word. */
+.verdict-card {
+  max-width: 100%;
+  margin: 16px 0 0;
+  padding: 20px 22px 22px;
 }
 
-.scanner-head {
-  display: flex;
-  gap: 7px;
-  padding: 13px 15px;
-  border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--ink) 4%, transparent);
+.verdict-word {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--display);
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
 }
 
-.scanner-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--subtle);
-}
+.verdict-word[data-risk="low"] { color: var(--good); }
+.verdict-word[data-risk="medium"] { color: var(--warn-ink); }
+.verdict-word[data-risk="high"] { color: var(--bad); }
 
-.scanner-dot:nth-child(1) { background: var(--bad); }
-.scanner-dot:nth-child(2) { background: var(--warn); }
-.scanner-dot:nth-child(3) { background: var(--good); }
-
-.scanner-body {
-  display: grid;
-  grid-template-columns: 150px minmax(0, 1fr);
-  gap: 18px;
-  align-items: center;
-  padding: 24px;
-}
-
-.scanner-ring {
-  position: relative;
-  display: grid;
-  place-items: center;
-  aspect-ratio: 1;
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  border-radius: 50%;
-  background:
-    conic-gradient(from -90deg, var(--scanner-tone, var(--accent)) calc(var(--scanner-score, 0) * 1%), color-mix(in srgb, var(--ink-muted) 10%, transparent) 0),
-    radial-gradient(circle at center, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 3%, transparent) 62%, transparent 63%);
-  transition: background 220ms ease, border-color 220ms ease;
-}
-
-.scanner-ring::before {
-  transform: rotate(var(--scanner-angle, 0deg));
-}
-
-.scanner-ring::before,
-.scanner-ring::after {
-  content: "";
-  position: absolute;
-  inset: 22%;
-  border: 1px solid color-mix(in srgb, var(--ink) 24%, transparent);
-  border-radius: inherit;
-}
-
-.scanner-ring::after {
-  inset: 42%;
-  background: var(--surface-deep);
-}
-
-.scanner-ring span {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--dot-color, var(--subtle));
-  box-shadow: 0 0 18px color-mix(in srgb, var(--dot-color, var(--subtle)) 62%, transparent);
-  transition: background 180ms ease, transform 220ms ease;
-}
-
-.scanner-ring span:nth-child(1) { transform: rotate(-42deg) translateX(62px); }
-.scanner-ring span:nth-child(2) { transform: rotate(64deg) translateX(62px); }
-.scanner-ring span:nth-child(3) { transform: rotate(155deg) translateX(62px); }
-.scanner-ring span:nth-child(4) { transform: rotate(245deg) translateX(62px); }
-
-.scanner-ring .dot-good { --dot-color: var(--good); }
-.scanner-ring .dot-warn { --dot-color: var(--warn); }
-.scanner-ring .dot-bad { --dot-color: var(--bad); }
-.scanner-ring .dot-muted { --dot-color: var(--subtle); }
-
-.scanner-low { --scanner-tone: var(--good); border-color: color-mix(in srgb, var(--good) 72%, transparent); }
-.scanner-medium { --scanner-tone: var(--warn); border-color: color-mix(in srgb, var(--warn) 78%, transparent); }
-.scanner-high { --scanner-tone: var(--bad); border-color: color-mix(in srgb, var(--bad) 78%, transparent); }
-.scanner-pending { --scanner-tone: var(--accent); }
-
-.scanner-readout {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px 12px;
-  min-width: 0;
+.verdict-score {
+  margin: 6px 0 14px;
+  color: var(--ink);
   font-family: var(--mono);
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
-.scanner-readout span {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 0.76rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.verdict-of {
+  color: var(--ink-muted);
+  font-size: 1rem;
+  font-weight: 500;
 }
 
-.scanner-readout strong {
-  color: var(--accent-2);
-  font-size: 0.76rem;
+.verdict-gauge { margin-bottom: 8px; }
+
+/* Three flat bands, one per verdict, sized to the score cut-offs (under 45 bot, 45 to 74 unsure,
+   75 and up human; src/report-verdict.js). Fills are the status colours at full strength, 3:1 or
+   better on every surface; the labels under them use the text tokens. The marker rides on top,
+   ringed in the page colour so it stands out from any band. */
+.verdict-track,
+.verdict-bands {
+  display: grid;
+  grid-template-columns: 45fr 30fr 25fr;
+  column-gap: 3px;
+}
+
+.verdict-track {
+  position: relative;
+  height: 10px;
+}
+
+.verdict-band:first-child { border-radius: var(--radius-pill) 0 0 var(--radius-pill); }
+.verdict-band:nth-child(3) { border-radius: 0 var(--radius-pill) var(--radius-pill) 0; }
+.verdict-track .verdict-band-bot { background: var(--bad); }
+.verdict-track .verdict-band-unsure { background: var(--warn); }
+.verdict-track .verdict-band-human { background: var(--good); }
+
+.verdict-marker {
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 3px solid var(--surface-deep);
+  border-radius: 50%;
+  background: var(--ink);
+  transition: left 220ms ease;
+}
+
+.verdict-bands {
+  margin-top: 6px;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.verdict-bands .verdict-band-bot { color: var(--bad); }
+.verdict-bands .verdict-band-unsure { color: var(--warn-ink); text-align: center; }
+.verdict-bands .verdict-band-human { color: var(--good); text-align: right; }
+
+.verdict-key {
+  margin: 10px 0 0;
+  color: var(--ink-muted);
+  font-size: 0.84rem;
+}
+
+.verdict-lines {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.verdict-line {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.verdict-line:hover { border-color: var(--line-strong); }
+
+.verdict-line .check-icon { margin-top: 1px; }
+
+.verdict-line-text {
+  min-width: 0;
+}
+
+.verdict-line-group {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.verdict-line-sentence {
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
 }
 
 .actions {
@@ -711,26 +731,23 @@ input:disabled {
 
 main { padding-bottom: 60px; }
 
+/* Spacing and radius only. A .panel gets its surface, border and shadow from a card variant. */
 .panel {
   margin-bottom: 24px;
-  border: 1px solid var(--glass-edge);
-  border-radius: var(--radius-lg);
-  background: linear-gradient(180deg, var(--glass-sheen), transparent 40%), var(--glass-fill);
-  box-shadow: inset 0 1px 0 var(--glass-rim), var(--glass-shadow);
   padding: 24px;
-  backdrop-filter: blur(20px) saturate(170%);
 }
 
+:where(.panel) { border-radius: var(--radius-lg); }
+
 @media (prefers-reduced-transparency: reduce) {
-  .panel, .site-header, .footer-panel, button:not(.button-primary) { backdrop-filter: none; background: var(--surface-raised); }
+  .site-header, button:not(.button-primary) { backdrop-filter: none; background: var(--surface-raised); }
 }
 
 .summary-panel {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(142px, auto);
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 20px;
   align-items: center;
-  border-color: color-mix(in srgb, var(--accent) 34%, transparent);
 }
 
 .summary-panel p { margin-bottom: 0; }
@@ -758,42 +775,26 @@ main { padding-bottom: 60px; }
   font-size: 0.85rem;
 }
 
-.masonry {
-  columns: 2 360px;
-  column-gap: 24px;
+/* The detail panels: a grid filled row by row, one column and two above 900px (Top signals spans
+   both). Rows keep every card's neighbours fixed (beside it in the row, above and below it in the
+   column) whatever each card's height, so the variant cycle in index.html holds. */
+.panel-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+  margin-bottom: 24px;
 }
 
-.masonry > .panel {
-  display: inline-block;
-  width: 100%;
-  margin: 0 0 24px;
-  break-inside: avoid;
-}
+.panel-grid > .panel { min-width: 0; margin: 0; }
 
-.score-card {
-  min-width: 148px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: linear-gradient(180deg, var(--panel-3), var(--surface-deep));
-  padding: 18px;
-  text-align: center;
-  font-family: var(--mono);
-  font-size: 1.8rem;
-  font-weight: 700;
+@media (min-width: 901px) {
+  .panel-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Top signals is the longest panel: it takes the full first row and lays its findings out in two
+     columns, so no short card sits beside a tall one. */
+  .panel-grid > #panel-top-signals { grid-column: 1 / -1; }
+  #panel-top-signals .list { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
 }
-
-.score-card small {
-  display: block;
-  margin-top: 5px;
-  color: var(--muted);
-  font-size: 0.68rem;
-  text-transform: uppercase;
-}
-
-.score-card.low { border-color: color-mix(in srgb, var(--good) 70%, transparent); color: var(--good); }
-.score-card.medium { border-color: color-mix(in srgb, var(--warn) 74%, transparent); color: var(--warn); }
-.score-card.high { border-color: color-mix(in srgb, var(--bad) 78%, transparent); color: var(--bad); }
-.score-card.pending { color: var(--muted); font-size: 1rem; }
 
 .muted { color: var(--muted); }
 
@@ -811,18 +812,46 @@ main { padding-bottom: 60px; }
   padding: 10px 12px;
 }
 
-.reason strong {
-  display: block;
-  color: var(--ink);
-  font-family: var(--mono);
-  font-size: 0.82rem;
+.reason-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 12px;
+  margin: 0;
 }
 
-.reason span {
-  display: block;
+.reason-title {
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.reason-weight {
+  color: var(--ink-muted);
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+}
+
+.reason-more summary {
   margin-top: 4px;
-  color: var(--muted);
-  font-size: 0.9rem;
+  color: var(--link);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reason-more p {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+}
+
+.reason-id code {
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.8rem;
 }
 
 .reason-evidence {
@@ -849,7 +878,7 @@ main { padding-bottom: 60px; }
 }
 
 .reason-evidence dt {
-  color: var(--subtle);
+  color: var(--muted);
   font-weight: 700;
 }
 
@@ -858,7 +887,7 @@ main { padding-bottom: 60px; }
 }
 
 .reason-evidence .is-alert dd {
-  color: var(--warn);
+  color: var(--warn-ink);
 }
 
 .kv {
@@ -919,9 +948,7 @@ td code {
   gap: 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--ink) 4%, transparent), transparent),
-    repeating-linear-gradient(0deg, color-mix(in srgb, var(--ink-muted) 8%, transparent) 0 1px, transparent 1px 25%);
+  background: var(--surface-raised);
   padding: 12px;
 }
 
@@ -948,9 +975,11 @@ td code {
   overflow: visible;
 }
 
+/* Flat chart: solid gridlines in --line-strong (3:1 on the raised surface in both themes). */
 .memory-chart line {
-  stroke: color-mix(in srgb, var(--ink-muted) 16%, transparent);
-  stroke-width: 0.35;
+  stroke: var(--line-strong);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
 }
 
 .memory-chart polyline {
@@ -963,8 +992,10 @@ td code {
   stroke: var(--accent);
 }
 
+/* Total heap is a reference line, not a failure: muted and dashed, so the two lines differ by more than colour. */
 .memory-chart .line-total {
-  stroke: var(--bad);
+  stroke: var(--ink-muted);
+  stroke-dasharray: 4 3;
 }
 
 .chart-legend span::before {
@@ -978,7 +1009,8 @@ td code {
 }
 
 .chart-legend .line-used { color: var(--accent); }
-.chart-legend .line-total { color: var(--bad); }
+.chart-legend .line-total { color: var(--ink-muted); }
+.chart-legend .line-total::before { height: 0; border-top: 3px dashed currentColor; background: none; }
 
 .chart-legend code {
   flex: 1 1 100%;
@@ -1072,18 +1104,15 @@ td code {
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background:
-    radial-gradient(circle at center, color-mix(in srgb, var(--accent) 11%, transparent), transparent 46%),
-    linear-gradient(180deg, color-mix(in srgb, var(--ink) 4%, transparent), color-mix(in srgb, var(--surface-deep) 24%, transparent));
+  background: var(--surface-raised);
 }
 
 .sensor-device {
   width: 42px;
   height: 74px;
-  border: 1px solid color-mix(in srgb, var(--accent) 72%, transparent);
+  border: 2px solid var(--accent);
   border-radius: var(--radius-md);
-  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 68%, transparent), color-mix(in srgb, var(--accent-3) 20%, transparent));
-  box-shadow: 0 12px 38px color-mix(in srgb, var(--accent) 20%, transparent);
+  background: var(--surface-tint);
   transform: rotateX(calc(var(--tilt-y) * 35deg)) rotateZ(calc(var(--tilt-x) * 45deg));
 }
 
@@ -1094,12 +1123,12 @@ td code {
   width: 170px;
   height: 2px;
   transform-origin: left center;
-  background: color-mix(in srgb, var(--accent-2) 70%, transparent);
+  background: var(--ink-muted);
 }
 
 .sensor-axis-y {
   width: 130px;
-  background: color-mix(in srgb, var(--accent) 74%, transparent);
+  background: var(--accent);
   transform: rotate(135deg);
 }
 
@@ -1164,7 +1193,7 @@ a {
 
 .status-disabled,
 .status-requires_js,
-.status-differs { border-color: var(--warn); color: var(--warn); }
+.status-differs { border-color: var(--warn); color: var(--warn-ink); }
 
 .status-missing { border-color: var(--subtle); color: var(--muted); }
 
@@ -1180,7 +1209,7 @@ pre {
   word-break: break-word;
 }
 
-.toggle-panel summary {
+.toggle-panel > summary {
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr);
   gap: 2px 10px;
@@ -1192,7 +1221,7 @@ pre {
   list-style: none;
 }
 
-.toggle-panel summary::-webkit-details-marker {
+.toggle-panel > summary::-webkit-details-marker {
   display: none;
 }
 
@@ -1216,7 +1245,7 @@ pre {
   line-height: 1;
 }
 
-.toggle-panel[open] .summary-icon::before {
+.toggle-panel[open] > summary .summary-icon::before {
   content: "-";
 }
 
@@ -1234,7 +1263,7 @@ pre {
   transform: translateY(2px) rotate(225deg);
 }
 
-.toggle-panel summary small {
+.toggle-panel > summary small {
   grid-column: 2;
   color: var(--muted);
   font-size: 0.78rem;
@@ -1242,7 +1271,7 @@ pre {
   text-transform: none;
 }
 
-.toggle-panel[open] summary {
+.toggle-panel[open] > summary {
   margin-bottom: 14px;
 }
 
@@ -1261,6 +1290,20 @@ pre {
   gap: 8px;
   color: var(--ink);
   font-weight: 760;
+}
+
+legend {
+  color: var(--ink);
+  font-weight: 700;
+  padding: 0 6px;
+}
+
+.choice {
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-deep) 72%, transparent);
+  padding: 10px 12px;
 }
 
 input {
@@ -1294,11 +1337,7 @@ input:focus {
   /* Keep the main button in reach on phones: right under the intro. */
   .actions { order: 2; }
 
-  .scanner-body { grid-template-columns: 130px minmax(0, 1fr); }
-
   .grid.two { grid-template-columns: 1fr; }
-
-  .masonry { columns: 1; }
 }
 
 @media (max-width: 640px) {
@@ -1311,21 +1350,6 @@ input:focus {
   h1 { font-size: clamp(2.45rem, 12vw, 3.8rem); }
 
   .summary-panel { grid-template-columns: 1fr; }
-
-  .score-card {
-    min-width: 0;
-    width: 100%;
-  }
-
-  .scanner-body {
-    grid-template-columns: 1fr;
-    padding: 18px;
-  }
-
-  .scanner-ring {
-    width: 150px;
-    justify-self: center;
-  }
 
   .actions button { flex: 1 1 140px; }
   .actions > button:first-child { flex-basis: 100%; }
@@ -1349,6 +1373,9 @@ input:focus {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* Checks performed has no card of its own: the heading and key sit on the page, the groups are the cards. */
+.checks-section { margin-bottom: 24px; }
 
 .check-legend {
   display: flex;
@@ -1381,70 +1408,130 @@ input:focus {
   line-height: 1;
 }
 
-.check-pass { color: var(--good); background: color-mix(in srgb, var(--good) 14%, transparent); }
-.check-warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
-.check-fail { color: var(--bad); background: color-mix(in srgb, var(--bad) 16%, transparent); }
-.check-na { color: var(--subtle); border-style: dashed; }
+.check-pass { color: var(--good); }
+.check-warn { color: var(--warn-ink); }
+.check-fail { color: var(--bad); }
+.check-na { color: var(--subtle); }
 
-.checks-table { table-layout: fixed; }
-.checks-table thead th:first-child { width: 2.75rem; }
-.checks-table thead th:nth-child(2) { width: 32%; }
 
-.checks-table .check-name {
+/* Checks performed: three groups, each row a disclosure (the check name, its status word and its
+   plain summary). Rows are plain list rows with a hairline between them: the status lives in the
+   icon and the word only, never in a row fill or border. */
+.check-group + .check-group { margin-top: 20px; }
+
+.check-group h3 {
+  margin: 0 0 4px;
   color: var(--ink);
-  font-size: 0.94rem;
-  font-weight: 600;
-  text-transform: none;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
-.check-result,
+.check-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Group cards: the variant (cards.css) sets the surface; this sets the inner spacing and radius. */
+:where(.check-group) { border-radius: var(--radius-lg); }
+.check-group { padding: 16px 18px; }
+
+.check-item { border-bottom: 1px solid var(--line); }
+.check-item:last-child { border-bottom: 0; }
+
+.check-item summary {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  min-height: 44px;
+  padding: 10px 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.check-item summary::-webkit-details-marker { display: none; }
+
+.check-item summary::after {
+  flex: none;
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--link);
+  font-family: var(--mono);
+  font-size: 1rem;
+  line-height: 1.4;
+  content: "+";
+}
+
+.check-item[open] summary::after { content: "-"; }
+
+.check-item summary .check-icon { margin-top: 1px; }
+
+.check-text {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 2px;
+  min-width: 0;
+}
+
+.check-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+}
+
 .check-name {
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 
-.check-observed {
-  display: block;
+/* The status word beside the icon. Text, so n/a takes --ink-muted: --subtle is a 3:1 graphic colour. */
+.check-state {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.check-state.check-na { color: var(--ink-muted); }
+
+.check-summary {
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+}
+
+.check-detail {
+  display: grid;
+  gap: 6px;
+  padding: 0 0 14px 2.25rem;
+}
+
+.check-detail-line {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+
+.check-detail-line code {
+  color: var(--ink);
   font-family: var(--mono);
   font-size: 0.84rem;
-  color: var(--ink);
 }
 
-.check-finding {
-  display: block;
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: 0.84rem;
+.check-detail-label {
+  color: var(--ink-muted);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-.check-finding-fail { color: var(--bad); }
-.check-finding-warn { color: var(--warn); }
-
-@media (max-width: 640px) {
-  .checks-table thead { display: none; }
-
-  .checks-table,
-  .checks-table tbody { display: block; }
-
-  .checks-table .check-row {
-    display: grid;
-    grid-template-columns: 1.5rem minmax(0, 1fr);
-    column-gap: 12px;
-    row-gap: 4px;
-    padding: 12px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .checks-table .check-row:last-child { border-bottom: 0; }
-
-  .checks-table .check-row > * {
-    padding: 0;
-    border: 0;
-  }
-
-  .checks-table .check-status { grid-row: span 2; }
-  .checks-table .check-name { grid-column: 2; }
-  .checks-table .check-result { grid-column: 2; }
-}
 
 /* Documentation pages (agents guide, check guide): a narrower reading column. */
 .doc-page {

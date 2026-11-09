@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildCheckRows, describeUserAgent } from "../public/checks-view-model.js";
+import { buildCheckRows, buildVerdictGroupLines, describeUserAgent, REASON_PLAIN, reasonHeadline } from "../public/checks-view-model.js";
+import { INTERACTION_CHECK_IDS } from "../public/interaction-checks.js";
 import { buildWorkerConsistencyRows } from "../public/report-view-model.js";
 import Ajv2020 from "ajv/dist/2020.js";
 import { readFileSync } from "node:fs";
-import { normalizeCloudflareBotManagement } from "../src/server-signals.js";
-import { scoreReport } from "../src/report-verdict.js";
+import { collectServer, normalizeCloudflareBotManagement } from "../src/server-signals.js";
+import { deriveInteraction, REASON_IDS, scoreInteraction, scoreReport } from "../src/report-verdict.js";
 import { buildInteractionReport } from "../public/collect-interaction.js";
 import { humanLike, scriptedElementClick } from "./fixtures/interaction-events.js";
 import { knownGoodBrowserReports } from "./e2e/fixtures/known-good-browsers.js";
@@ -40,7 +41,7 @@ function byName(rows) {
   return Object.fromEntries(rows.map((row) => [row.name, row]));
 }
 
-describe("checks table rows", () => {
+describe("check rows", () => {
   it("states what was observed, not that a check ran", () => {
     const rows = byName(buildCheckRows(report()));
     expect(rows["Browser data"].result).toMatch(/^webdriver: false · \d+ plugins? · \d+ threads · screen \d+×\d+$/);
@@ -212,7 +213,7 @@ describe("Interaction row", () => {
 
   it("passes a person-like run and says how long it took and what was judged", () => {
     const row = scoredWith(reportFrom(humanLike()))["Interaction"];
-    expect(row).toMatchObject({ status: "pass", label: "Pass", slug: "interaction" });
+    expect(row).toMatchObject({ status: "pass", label: "Pass", slug: "interaction", summary: "Typing and clicks look human" });
     expect(row.result).toMatch(/^\d+\.\d s from Start to Submit · 13 of 13 checks judged$/);
   });
 
@@ -220,6 +221,7 @@ describe("Interaction row", () => {
     const rows = scoredWith(reportFrom(scriptedElementClick()));
     expect(rows["Interaction"].status).toBe("warn");
     expect(rows["Interaction"].finding).toMatch(/^Interaction test: /);
+    expect(rows["Interaction"].summary).not.toMatch(/^Interaction test: /);
     expect(rows["Interaction"].status).not.toBe("fail");
   });
 
@@ -230,10 +232,252 @@ describe("Interaction row", () => {
     expect(scoredWith({ ...judged, checks: [] }).Interaction).toMatchObject({ status: "na", result: "not taken" });
   });
 
+  it("shows an unreadable interaction report as a warning, not as a test not taken", () => {
+    const row = scoredWith({ version: "not-a-report" })["Interaction"];
+    expect(row).toMatchObject({ status: "warn", summary: "Interaction report could not be read" });
+    expect(validateRow(row), JSON.stringify(validateRow.errors)).toBe(true);
+  });
+
   it("validates its row against the check-row schema in every state", () => {
     for (const interaction of [undefined, reportFrom(humanLike()), reportFrom(scriptedElementClick())]) {
       const row = scoredWith(interaction)["Interaction"];
       expect(validateRow(row), JSON.stringify(validateRow.errors)).toBe(true);
     }
+  });
+});
+
+describe("verdict card fields", () => {
+  it("groups every row under automation, behavior or fingerprint", () => {
+    const groups = Object.fromEntries(buildCheckRows(report()).map((row) => [row.name, row.group]));
+    expect(groups).toMatchObject({
+      "Browser data": "automation",
+      "Remote-control tells": "automation",
+      "Behavioural classification": "behavior",
+      "Interaction": "behavior",
+      "Request profile": "fingerprint",
+      "Worker consistency": "fingerprint"
+    });
+    for (const group of Object.values(groups)) expect(["automation", "behavior", "fingerprint"]).toContain(group);
+  });
+
+  it("says a passing check in plain words, and keeps the raw value as result", () => {
+    const row = byName(buildCheckRows(report()))["Browser data"];
+    expect(row).toMatchObject({ status: "pass", summary: "WebDriver not detected" });
+    expect(row.result).toMatch(/^webdriver: false/);
+    const extensions = { ...goodClient, surfaces: { extensions: { enabled: true, detectedCount: 1, checked: 10 } } };
+    expect(byName(buildCheckRows(report({ client: extensions })))["Fingerprint surfaces"]).toMatchObject({ status: "pass", summary: "1 of 10 extensions visible" });
+  });
+
+  it("summarises a flagged check in plain words and keeps the server message as the finding", () => {
+    const row = byName(buildCheckRows(report({
+      client: { ...goodClient, browser: { ...goodClient.browser, webdriver: true } },
+      reasons: [{ id: "navigator_webdriver", severity: "high", message: "navigator.webdriver is true." }]
+    })))["Browser data"];
+    expect(row).toMatchObject({ status: "fail", summary: "WebDriver detected", finding: "navigator.webdriver is true." });
+    expect(row.summary).not.toMatch(/navigator\./);
+  });
+
+  it("never puts a raw API name in a summary, for any reason the scoring code can emit", () => {
+    const rawApi = /navigator\.|window\.|document\.|performance\.|Function\.|isTrusted|\.prototype/;
+    for (const [id, phrase] of Object.entries(REASON_PLAIN)) expect(phrase, id).not.toMatch(rawApi);
+  });
+
+  it("has a plain phrase for exactly the reasons the scoring code registers", () => {
+    expect(Object.keys(REASON_PLAIN).sort()).toEqual([...REASON_IDS].sort());
+  });
+
+  it("refuses to score a reason that is not registered", () => {
+    const headerSignals = { reasons: [{ id: "not_registered", severity: "low", message: "Unregistered." }] };
+    expect(() => scoreReport({ server: { userAgent: "x", headerSignals }, client: {} })).toThrow(/not_registered/);
+  });
+
+  it("can reach every registered reason, and emits no other", async () => {
+    const emitted = new Set();
+    const score = (server, client) => {
+      for (const reason of scoreReport({ server, client }).reasons) emitted.add(reason.id);
+    };
+    // Header reasons come from the Worker's own request reader, then re-score through scoreReport.
+    const requests = [
+      {},
+      { "user-agent": "Mozilla/5.0 HeadlessChrome/120.0" },
+      { "user-agent": "Mozilla/5.0 Chrome/120.0 Safari/537.36", "content-length": "12" },
+      { "user-agent": "curl/8.4.0" }
+    ];
+    for (const headers of requests) {
+      score(await collectServer(new Request("https://tells.test/api/report", { method: "POST", headers }), { IP_INTEL_PROVIDER: "none" }), {});
+    }
+    const flagged = { reason: "test" };
+    const heap = { supported: true, usedJSHeapSize: 0, totalJSHeapSize: 0, jsHeapSizeLimit: 0, usedRatio: 2 };
+    score({
+      userAgent: "",
+      proxyHeaders: { via: "1.1 proxy" },
+      datacenterHeuristic: { isLikelyDatacenter: true },
+      ipIntel: { normalized: { isTor: true, isProxy: true, isVpn: true, isDatacenter: true, isAbuser: true, isCrawler: true, fraudScore: 90 } },
+      cloudflareBotManagement: { available: true, score: 10, verifiedBot: false },
+      cf: { clientTcpRtt: 10 }
+    }, {
+      browser: {
+        webdriver: true,
+        userAgent: "Mozilla/5.0 HeadlessChrome/120.0",
+        plugins: [],
+        prototypeChecks: { nativeGetterFailures: ["webdriver"] },
+        pluginsConsistency: { referenceMismatch: true },
+        permissions: { notifications: { state: "default", permission: "default" } },
+        screen: { innerWidth: 800, innerHeight: 600, outerWidth: 0, outerHeight: 0 }
+      },
+      automation: { present: ["__nightmare"], cdpSerializationSignal: true },
+      tells: {
+        webdriver: { definedOn: "navigator" },
+        nativeFunctions: { functionToString: false },
+        documentAutomationKeys: ["$cdc_asdjflasutopfhvcZLmcfl_"],
+        input: { untrusted: 1, trustedWhileHidden: 1 }
+      },
+      consistency: Object.fromEntries([
+        "uaPlatformMismatch", "workerPlatformMismatch", "iframePlatformMismatch", "timezoneMismatch", "screenViewportImpossible",
+        "userAgentMismatch", "acceptLanguageMismatch", "clientHintPlatformMismatch", "clientHintMobileMismatch",
+        "clientHintHighEntropyMismatch", "userAgentDataHighEntropyMismatch", "mobileTouchMismatch"
+      ].map((key) => [key, flagged])),
+      fingerprints: { webgl: { supported: false }, canvas: { error: "blocked" } },
+      network: { webrtc: { publicIpLeakDifferentFromServer: true }, ping: { medianMs: 900, memorySamples: [heap] } },
+      behavior: { score: 0.1 },
+      interaction: { version: "not-a-report" }
+    });
+    // The other side of each either/or branch above.
+    score({ userAgent: "x", cloudflareBotManagement: { available: true, score: 40, verifiedBot: false } }, {
+      browser: { userAgent: "Mozilla/5.0 Chrome/120.0", plugins: [{}], pluginsConsistency: { itemOverflowMatchesFirst: false }, permissions: { notifications: { state: "prompt", permission: "denied" } } },
+      tells: { webdriver: { getterNative: false }, input: { trustedWithoutFocus: 1 } },
+      behavior: { score: 0.4 }
+    });
+    score({ userAgent: "x", cloudflareBotManagement: { available: true, score: 99, verifiedBot: true } }, {});
+    // Every interaction check the Worker derives is scored under its own id when it fails.
+    const { events, task } = scriptedElementClick();
+    const derived = deriveInteraction(buildInteractionReport(events, task));
+    scoreInteraction({ ...derived, checks: derived.checks.map((check) => ({ ...check, status: "fail" })) }, (points, id) => emitted.add(id));
+    for (const id of INTERACTION_CHECK_IDS) expect(emitted, id).toContain(id);
+
+    expect([...emitted].sort()).toEqual([...REASON_IDS].sort());
+  });
+
+  it("heads every Top signals entry with a plain phrase, falling back to the check name", () => {
+    expect(reasonHeadline("navigator_webdriver")).toBe("WebDriver detected");
+    expect(reasonHeadline("automation_user_agent")).toBe("Browser identity names an automation tool");
+    expect(reasonHeadline("not_a_known_reason")).toBe("Other finding");
+    for (const id of Object.keys(REASON_PLAIN)) expect(reasonHeadline(id), id).not.toMatch(/_/);
+  });
+
+  it("says in a sentence why a check did not run, and keeps the short reason as result", () => {
+    const rows = byName(buildCheckRows(report({ client: null, server: { ipIntel: { enabled: false }, cloudflareBotManagement: { available: false } } })));
+    expect(rows["VPN / proxy / Tor intelligence"]).toMatchObject({ status: "na", summary: "IP reputation lookup is off", result: "lookup off" });
+    expect(rows["Managed bot score"]).toMatchObject({ status: "na", summary: "Cloudflare bot score not available", result: "Bot Management not active" });
+    expect(rows["TLS fingerprint"]).toMatchObject({ status: "na", summary: "TLS fingerprint not available" });
+    expect(rows["Browser data"]).toMatchObject({ status: "na", summary: "Not collected in this run", result: "not collected" });
+    expect(rows["Interaction"]).toMatchObject({ status: "na", summary: "Interaction test not taken", result: "not taken" });
+  });
+
+  it("writes every summary as a plain sentence: capitalised, no raw API name, no raw value", () => {
+    const rawApi = /navigator\.|window\.|document\.|performance\.|Function\.|isTrusted|\.prototype|webdriver:|JA[34] [a-z0-9]/;
+    const cases = [
+      report(),
+      report({ client: null, server: { ipIntel: { enabled: false } } }),
+      report({ server: { ipIntel: { error: "timeout", enabled: true } } }),
+      report({
+        client: { ...goodClient, browser: { ...goodClient.browser, webdriver: true } },
+        reasons: [
+          { id: "navigator_webdriver", severity: "high", message: "navigator.webdriver is true." },
+          { id: "client_headless_user_agent", severity: "high", message: "HeadlessChrome in navigator.userAgent." },
+          { id: "timezone_mismatch", severity: "medium", message: "Intl timezone differs." }
+        ]
+      })
+    ];
+    for (const entry of cases) {
+      const rows = buildCheckRows(entry);
+      for (const row of rows) {
+        expect(row.summary, row.name).toMatch(/^[A-Z0-9]/);
+        expect(row.summary, row.name).not.toMatch(rawApi);
+      }
+      for (const line of buildVerdictGroupLines(rows)) expect(line.sentence, line.key).not.toMatch(rawApi);
+    }
+  });
+
+  it("says WebDriver detected on a passing row whose flag is set", () => {
+    const client = { ...goodClient, browser: { ...goodClient.browser, webdriver: true } };
+    expect(byName(buildCheckRows(report({ client })))["Browser data"]).toMatchObject({ status: "pass", summary: "WebDriver detected" });
+  });
+
+  it("gives every row a non-empty plain summary", () => {
+    for (const row of buildCheckRows(report())) expect(row.summary.trim().length).toBeGreaterThan(0);
+  });
+
+  it("maps each classification to one verdict word", async () => {
+    const { verdictWord } = await import("../public/voice.js");
+    expect(verdictWord("likely_human")).toBe("Looks human");
+    expect(verdictWord("suspicious")).toBe("Hard to tell");
+    expect(verdictWord("likely_bot")).toBe("Looks like a bot");
+    expect(verdictWord("pending")).toBe("In progress");
+    expect(verdictWord("failed")).toBe("Not scored");
+    expect(verdictWord(undefined)).toBe("In progress");
+  });
+});
+
+describe("verdict group lines", () => {
+  const lineFor = (rows) => Object.fromEntries(buildVerdictGroupLines(rows).map((line) => [line.key, line]));
+  const row = (name, group, status, summary) => ({ name, group, status, summary, ...{ pass: { symbol: "✓", label: "Pass" }, warn: { symbol: "!", label: "Warning" }, fail: { symbol: "✕", label: "Fail" }, na: { symbol: "–", label: "Not available" } }[status] });
+
+  it("returns the three groups in display order, each with an anchor into the checks list", () => {
+    const lines = buildVerdictGroupLines(buildCheckRows(report()));
+    expect(lines.map((line) => line.key)).toEqual(["automation", "behavior", "fingerprint"]);
+    expect(lines.map((line) => line.anchor)).toEqual(["checks-automation", "checks-behavior", "checks-fingerprint"]);
+    expect(lines.map((line) => line.label)).toEqual(["Automation flags", "Behavior", "Fingerprint consistency"]);
+  });
+
+  it("says no automation flags when the automation rows pass", () => {
+    const lines = lineFor([row("Browser data", "automation", "pass", "WebDriver not detected"), row("Remote-control tells", "automation", "pass", "No remote-control tells found")]);
+    expect(lines.automation).toMatchObject({ status: "pass", symbol: "✓", statusLabel: "Pass", sentence: "none found" });
+  });
+
+  it("names a single automation flag on its own", () => {
+    const lines = lineFor([row("Browser data", "automation", "fail", "WebDriver detected"), row("Managed bot score", "automation", "pass", "Cloudflare bot score is not low")]);
+    expect(lines.automation).toMatchObject({ status: "fail", symbol: "✕", sentence: "WebDriver detected" });
+  });
+
+  it("lists several automation flags without a count, later ones in lower case unless a name", () => {
+    const lines = lineFor([
+      row("Browser data", "automation", "fail", "WebDriver detected"),
+      row("Browser data 2", "automation", "fail", "Headless browser detected"),
+      row("Remote-control tells", "automation", "warn", "WebDriver flag patched"),
+      row("Managed bot score", "automation", "pass", "Cloudflare bot score is not low")
+    ]);
+    expect(lines.automation).toMatchObject({ status: "fail", symbol: "✕", sentence: "WebDriver detected, headless browser detected, WebDriver flag patched" });
+  });
+
+  it("uses the first clean behaviour sentence when nothing is flagged, and the concern when something is", () => {
+    expect(lineFor([row("Behavioural classification", "behavior", "pass", "Pointer and key timing look human")]).behavior.sentence).toBe("Pointer and key timing look human");
+    expect(lineFor([row("Behavioural classification", "behavior", "warn", "Pointer and key input are borderline")]).behavior).toMatchObject({ status: "warn", symbol: "!", sentence: "Pointer and key input are borderline" });
+  });
+
+  it("keeps a name's capital when it starts a later summary", () => {
+    const lines = lineFor([
+      row("Request profile", "fingerprint", "warn", "Timezone does not match the IP location"),
+      row("VPN / proxy / Tor intelligence", "fingerprint", "fail", REASON_PLAIN.ip_tor)
+    ]);
+    expect(lines.fingerprint.sentence).toBe("Timezone does not match the IP location, Tor exit address");
+  });
+
+  it("lists fingerprint concerns by their plain summaries, never by check name", () => {
+    const lines = lineFor([
+      row("Request profile", "fingerprint", "warn", "Timezone does not match the IP location"),
+      row("Browser fingerprint", "fingerprint", "fail", "No WebGL graphics support"),
+      row("Latency", "fingerprint", "pass", "Round-trip times look ordinary"),
+      row("TLS fingerprint", "fingerprint", "na", "TLS fingerprint not available")
+    ]);
+    expect(lines.fingerprint).toMatchObject({ status: "fail", sentence: "Timezone does not match the IP location, no WebGL graphics support" });
+    expect(lineFor([row("Latency", "fingerprint", "pass", "x")]).fingerprint.sentence).toBe("1 check agrees");
+    expect(lineFor([row("Latency", "fingerprint", "pass", "x"), row("Request profile", "fingerprint", "pass", "y")]).fingerprint.sentence).toBe("All 2 checks agree");
+  });
+
+  it("reports a group with no judged rows as not checked, with n/a status", () => {
+    const line = lineFor([row("Interaction", "behavior", "na", "Interaction test not taken")]).behavior;
+    expect(line).toMatchObject({ status: "na", symbol: "–", statusLabel: "Not available", sentence: "Not checked in this run" });
+    expect(lineFor([]).automation).toMatchObject({ status: "na", sentence: "Not checked in this run" });
   });
 });
