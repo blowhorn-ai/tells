@@ -6,9 +6,7 @@
 // All thresholds are provisional until calibration on 20+ human runs.
 
 export const INTERACTION_THRESHOLDS = {
-  // Over 1.5 px, not 1: the button centre is fractional and the pointer position is quantised, so a
-  // click aimed at the exact centre can read up to about 1 px off on each axis (1.41 px in all).
-  centrePassPx: 1.5,
+  centrePassPx: 1,
   centreFailPx: 0.5,
   premovePassSamples: 3,
   premovePassPathPx: 20,
