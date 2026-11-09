@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { readdirSync } from "node:fs";
 import { stubSharedCards } from "./support/cards.js";
 
 // Brand rule: no card, panel, row, callout or quote draws a coloured stripe on one edge. The shared
@@ -7,7 +8,9 @@ import { stubSharedCards } from "./support/cards.js";
 // wider than 1px, or a thin ::before/::after bar. 1px hairlines (row dividers, a header's bottom
 // edge) are allowed.
 
-const PAGES = ["/", "/checks/", "/checks/browser-data/", "/checks/interaction/", "/checks/platforms/", "/agents/"];
+const PAGES = ["/", "/checks/", "/agents/", ...readdirSync(new URL("../../public/checks/", import.meta.url), { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => `/checks/${entry.name}/`)];
 
 test.beforeEach(async ({ page }) => stubSharedCards(page));
 
@@ -67,7 +70,7 @@ test("finds each kind of stripe in a sample", async ({ page }) => {
 for (const colorScheme of ["dark", "light"]) {
   for (const width of [375, 1280]) {
     test(`no page draws a one-edge stripe at ${width}px, ${colorScheme} theme`, async ({ page }) => {
-      test.setTimeout(60_000);
+      test.setTimeout(90_000);
       await page.setViewportSize({ width, height: 900 });
       await page.emulateMedia({ colorScheme });
       for (const path of PAGES) {

@@ -1,6 +1,7 @@
 import { validateInteractionReport } from "../public/generated/validate-interaction-report.js";
-import { evaluateInteractionChecks } from "../public/interaction-checks.js";
+import { evaluateInteractionChecks, INTERACTION_CHECK_IDS } from "../public/interaction-checks.js";
 import { getSuspiciousProxyHeaders } from "./proxy-headers.js";
+import { HEADER_REASON_IDS } from "./server-signals.js";
 import {
   collectClientHintHighEntropyMismatches,
   collectUserAgentDataHighEntropyMismatches,
@@ -17,6 +18,65 @@ import {
 // the most the checks can ever take off the score is 39, so they cannot make a verdict bot on their own.
 // Setting it to true scores a raw fail high and a raw warn medium.
 export const INTERACTION_CALIBRATED = false;
+
+// Every reason id scoreReport can emit. Scoring an id that is not listed throws, so a new reason has to be
+// registered here, and the page needs a plain phrase for each one (REASON_PLAIN in public/checks-view-model.js).
+export const REASON_IDS = Object.freeze([
+  "server_missing_ua",
+  ...HEADER_REASON_IDS,
+  "proxy_headers",
+  "datacenter_asn_heuristic",
+  "ip_tor",
+  "ip_proxy",
+  "ip_vpn",
+  "ip_datacenter",
+  "ip_abuser",
+  "ip_crawler",
+  "ipqs_high_fraud_score",
+  "managed_bot_score_low",
+  "managed_bot_score_borderline",
+  "cloudflare_verified_bot",
+  "navigator_webdriver",
+  "client_headless_user_agent",
+  "automation_globals",
+  "cdp_serialization_signal",
+  "webdriver_own_property",
+  "webdriver_getter_patched",
+  "native_function_patched",
+  "document_automation_keys",
+  "synthetic_input",
+  "input_while_hidden",
+  "input_without_focus",
+  "notification_permission_contradiction",
+  "zero_size_window",
+  "ua_platform_mismatch",
+  "worker_platform_mismatch",
+  "iframe_platform_mismatch",
+  "timezone_mismatch",
+  "screen_viewport_impossible",
+  "request_client_ua_mismatch",
+  "accept_language_mismatch",
+  "client_hint_platform_mismatch",
+  "client_hint_mobile_mismatch",
+  "client_hint_high_entropy_mismatch",
+  "ua_data_high_entropy_mismatch",
+  "mobile_touch_mismatch",
+  "notification_permission_default_state",
+  "empty_plugins_chromium",
+  "prototype_getter_not_native",
+  "plugin_reference_mismatch",
+  "plugin_item_overflow",
+  "webgl_missing",
+  "canvas_error",
+  "webrtc_public_ip_mismatch",
+  "browser_edge_latency_gap",
+  "performance_memory_anomaly",
+  "behavior_score_low",
+  "behavior_score_borderline",
+  "interaction_report_invalid",
+  ...INTERACTION_CHECK_IDS
+]);
+const REGISTERED_REASONS = new Set(REASON_IDS);
 
 const INTERACTION_RULES = INTERACTION_CALIBRATED
   ? { fail: { severity: "high", points: 25 }, warn: { severity: "medium", points: 12 } }
@@ -132,6 +192,7 @@ export function scoreReport(report, interaction = deriveInteraction(report.clien
   const isMobileBrowser = /android|iphone|ipad|ipod|mobile/i.test(userAgent);
 
   const penalize = (points, id, severity, message, data = undefined) => {
+    if (!REGISTERED_REASONS.has(id)) throw new Error(`Reason id ${id} is not in REASON_IDS.`);
     score -= points;
     reasons.push({ id, severity, points, message, data });
   };

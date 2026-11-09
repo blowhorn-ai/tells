@@ -5,7 +5,7 @@ import { buildWorkerConsistencyRows } from "../public/report-view-model.js";
 import Ajv2020 from "ajv/dist/2020.js";
 import { readFileSync } from "node:fs";
 import { collectServer, normalizeCloudflareBotManagement } from "../src/server-signals.js";
-import { deriveInteraction, scoreInteraction, scoreReport } from "../src/report-verdict.js";
+import { deriveInteraction, REASON_IDS, scoreInteraction, scoreReport } from "../src/report-verdict.js";
 import { buildInteractionReport } from "../public/collect-interaction.js";
 import { humanLike, scriptedElementClick } from "./fixtures/interaction-events.js";
 import { knownGoodBrowserReports } from "./e2e/fixtures/known-good-browsers.js";
@@ -282,7 +282,16 @@ describe("verdict card fields", () => {
     for (const [id, phrase] of Object.entries(REASON_PLAIN)) expect(phrase, id).not.toMatch(rawApi);
   });
 
-  it("has a plain phrase for every reason the scoring code emits, and no phrase for a reason it never emits", async () => {
+  it("has a plain phrase for exactly the reasons the scoring code registers", () => {
+    expect(Object.keys(REASON_PLAIN).sort()).toEqual([...REASON_IDS].sort());
+  });
+
+  it("refuses to score a reason that is not registered", () => {
+    const headerSignals = { reasons: [{ id: "not_registered", severity: "low", message: "Unregistered." }] };
+    expect(() => scoreReport({ server: { userAgent: "x", headerSignals }, client: {} })).toThrow(/not_registered/);
+  });
+
+  it("can reach every registered reason, and emits no other", async () => {
     const emitted = new Set();
     const score = (server, client) => {
       for (const reason of scoreReport({ server, client }).reasons) emitted.add(reason.id);
@@ -346,7 +355,7 @@ describe("verdict card fields", () => {
     scoreInteraction({ ...derived, checks: derived.checks.map((check) => ({ ...check, status: "fail" })) }, (points, id) => emitted.add(id));
     for (const id of INTERACTION_CHECK_IDS) expect(emitted, id).toContain(id);
 
-    expect([...emitted].sort()).toEqual(Object.keys(REASON_PLAIN).sort());
+    expect([...emitted].sort()).toEqual([...REASON_IDS].sort());
   });
 
   it("heads every Top signals entry with a plain phrase, falling back to the check name", () => {
