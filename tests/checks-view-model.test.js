@@ -4,8 +4,8 @@ import { INTERACTION_CHECK_IDS } from "../public/interaction-checks.js";
 import { buildWorkerConsistencyRows } from "../public/report-view-model.js";
 import Ajv2020 from "ajv/dist/2020.js";
 import { readFileSync } from "node:fs";
-import { normalizeCloudflareBotManagement } from "../src/server-signals.js";
-import { scoreReport } from "../src/report-verdict.js";
+import { collectServer, normalizeCloudflareBotManagement } from "../src/server-signals.js";
+import { deriveInteraction, scoreInteraction, scoreReport } from "../src/report-verdict.js";
 import { buildInteractionReport } from "../public/collect-interaction.js";
 import { humanLike, scriptedElementClick } from "./fixtures/interaction-events.js";
 import { knownGoodBrowserReports } from "./e2e/fixtures/known-good-browsers.js";
@@ -41,7 +41,7 @@ function byName(rows) {
   return Object.fromEntries(rows.map((row) => [row.name, row]));
 }
 
-describe("checks table rows", () => {
+describe("check rows", () => {
   it("states what was observed, not that a check ran", () => {
     const rows = byName(buildCheckRows(report()));
     expect(rows["Browser data"].result).toMatch(/^webdriver: false · \d+ plugins? · \d+ threads · screen \d+×\d+$/);
@@ -282,15 +282,71 @@ describe("verdict card fields", () => {
     for (const [id, phrase] of Object.entries(REASON_PLAIN)) expect(phrase, id).not.toMatch(rawApi);
   });
 
-  it("has a plain phrase for every reason the scoring code can emit", () => {
-    const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
-    // Three sources: penalize() calls in the verdict, the header reasons server-signals.js pushes
-    // (re-scored through penalize(points, reason.id, ...)), and the interaction check ids.
-    const scored = [...read("../src/report-verdict.js").matchAll(/penalize\([^,]+, "([a-z_0-9]+)"/g)].map((match) => match[1]);
-    const headers = [...read("../src/server-signals.js").matchAll(/reasons\.push\(\{ id: "([a-z_0-9]+)"/g)].map((match) => match[1]);
-    expect(scored.length).toBeGreaterThan(50);
-    expect(headers.length).toBeGreaterThanOrEqual(7);
-    for (const id of [...scored, ...headers, ...INTERACTION_CHECK_IDS]) expect(REASON_PLAIN, id).toHaveProperty([id]);
+  it("has a plain phrase for every reason the scoring code emits, and no phrase for a reason it never emits", async () => {
+    const emitted = new Set();
+    const score = (server, client) => {
+      for (const reason of scoreReport({ server, client }).reasons) emitted.add(reason.id);
+    };
+    // Header reasons come from the Worker's own request reader, then re-score through scoreReport.
+    const requests = [
+      {},
+      { "user-agent": "Mozilla/5.0 HeadlessChrome/120.0" },
+      { "user-agent": "Mozilla/5.0 Chrome/120.0 Safari/537.36", "content-length": "12" },
+      { "user-agent": "curl/8.4.0" }
+    ];
+    for (const headers of requests) {
+      score(await collectServer(new Request("https://tells.test/api/report", { method: "POST", headers }), { IP_INTEL_PROVIDER: "none" }), {});
+    }
+    const flagged = { reason: "test" };
+    const heap = { supported: true, usedJSHeapSize: 0, totalJSHeapSize: 0, jsHeapSizeLimit: 0, usedRatio: 2 };
+    score({
+      userAgent: "",
+      proxyHeaders: { via: "1.1 proxy" },
+      datacenterHeuristic: { isLikelyDatacenter: true },
+      ipIntel: { normalized: { isTor: true, isProxy: true, isVpn: true, isDatacenter: true, isAbuser: true, isCrawler: true, fraudScore: 90 } },
+      cloudflareBotManagement: { available: true, score: 10, verifiedBot: false },
+      cf: { clientTcpRtt: 10 }
+    }, {
+      browser: {
+        webdriver: true,
+        userAgent: "Mozilla/5.0 HeadlessChrome/120.0",
+        plugins: [],
+        prototypeChecks: { nativeGetterFailures: ["webdriver"] },
+        pluginsConsistency: { referenceMismatch: true },
+        permissions: { notifications: { state: "default", permission: "default" } },
+        screen: { innerWidth: 800, innerHeight: 600, outerWidth: 0, outerHeight: 0 }
+      },
+      automation: { present: ["__nightmare"], cdpSerializationSignal: true },
+      tells: {
+        webdriver: { definedOn: "navigator" },
+        nativeFunctions: { functionToString: false },
+        documentAutomationKeys: ["$cdc_asdjflasutopfhvcZLmcfl_"],
+        input: { untrusted: 1, trustedWhileHidden: 1 }
+      },
+      consistency: Object.fromEntries([
+        "uaPlatformMismatch", "workerPlatformMismatch", "iframePlatformMismatch", "timezoneMismatch", "screenViewportImpossible",
+        "userAgentMismatch", "acceptLanguageMismatch", "clientHintPlatformMismatch", "clientHintMobileMismatch",
+        "clientHintHighEntropyMismatch", "userAgentDataHighEntropyMismatch", "mobileTouchMismatch"
+      ].map((key) => [key, flagged])),
+      fingerprints: { webgl: { supported: false }, canvas: { error: "blocked" } },
+      network: { webrtc: { publicIpLeakDifferentFromServer: true }, ping: { medianMs: 900, memorySamples: [heap] } },
+      behavior: { score: 0.1 },
+      interaction: { version: "not-a-report" }
+    });
+    // The other side of each either/or branch above.
+    score({ userAgent: "x", cloudflareBotManagement: { available: true, score: 40, verifiedBot: false } }, {
+      browser: { userAgent: "Mozilla/5.0 Chrome/120.0", plugins: [{}], pluginsConsistency: { itemOverflowMatchesFirst: false }, permissions: { notifications: { state: "prompt", permission: "denied" } } },
+      tells: { webdriver: { getterNative: false }, input: { trustedWithoutFocus: 1 } },
+      behavior: { score: 0.4 }
+    });
+    score({ userAgent: "x", cloudflareBotManagement: { available: true, score: 99, verifiedBot: true } }, {});
+    // Every interaction check the Worker derives is scored under its own id when it fails.
+    const { events, task } = scriptedElementClick();
+    const derived = deriveInteraction(buildInteractionReport(events, task));
+    scoreInteraction({ ...derived, checks: derived.checks.map((check) => ({ ...check, status: "fail" })) }, (points, id) => emitted.add(id));
+    for (const id of INTERACTION_CHECK_IDS) expect(emitted, id).toContain(id);
+
+    expect([...emitted].sort()).toEqual(Object.keys(REASON_PLAIN).sort());
   });
 
   it("heads every Top signals entry with a plain phrase, falling back to the check name", () => {
@@ -349,6 +405,7 @@ describe("verdict card fields", () => {
     expect(verdictWord("suspicious")).toBe("Hard to tell");
     expect(verdictWord("likely_bot")).toBe("Looks like a bot");
     expect(verdictWord("pending")).toBe("In progress");
+    expect(verdictWord("failed")).toBe("Not scored");
     expect(verdictWord(undefined)).toBe("In progress");
   });
 });
@@ -387,6 +444,14 @@ describe("verdict group lines", () => {
   it("uses the first clean behaviour sentence when nothing is flagged, and the concern when something is", () => {
     expect(lineFor([row("Behavioural classification", "behavior", "pass", "Pointer and key timing look human")]).behavior.sentence).toBe("Pointer and key timing look human");
     expect(lineFor([row("Behavioural classification", "behavior", "warn", "Pointer and key input are borderline")]).behavior).toMatchObject({ status: "warn", symbol: "!", sentence: "Pointer and key input are borderline" });
+  });
+
+  it("keeps a name's capital when it starts a later summary", () => {
+    const lines = lineFor([
+      row("Request profile", "fingerprint", "warn", "Timezone does not match the IP location"),
+      row("VPN / proxy / Tor intelligence", "fingerprint", "fail", REASON_PLAIN.ip_tor)
+    ]);
+    expect(lines.fingerprint.sentence).toBe("Timezone does not match the IP location, Tor exit address");
   });
 
   it("lists fingerprint concerns by their plain summaries, never by check name", () => {

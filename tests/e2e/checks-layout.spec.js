@@ -157,6 +157,33 @@ for (const colorScheme of ["dark", "light"]) {
   }
 }
 
+test.describe("verdict card when a run cannot be scored", () => {
+  const failScoring = (page) => page.route("**/api/report", (route) => route.abort());
+
+  test("says the run was not scored, with no score or marker, when the first run fails", async ({ page }) => {
+    await failScoring(page);
+    await page.goto("/");
+    await expect(page.locator("#verdictWord")).toHaveText("Not scored", { timeout: 20_000 });
+    await expect(page.locator("#verdictScore")).toHaveText("–");
+    await expect(page.locator("#verdictMarker")).toBeHidden();
+    await expect(page.locator("#verdictGroups")).toHaveText("The inspection could not be scored. Run it again.");
+  });
+
+  test("keeps the last scored verdict, matching the checks list, when a later run fails", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator("#verdictWord")).not.toHaveText("In progress", { timeout: 20_000 });
+    const word = await page.locator("#verdictWord").textContent();
+    const score = await page.locator("#verdictScore").textContent();
+    await failScoring(page);
+    await page.locator("#runBtn").click();
+    await expect(page.locator("#status")).toContainText("Run the inspection again.", { timeout: 20_000 });
+    await expect(page.locator("#runBtn")).toBeEnabled();
+    await expect(page.locator("#verdictWord")).toHaveText(word);
+    await expect(page.locator("#verdictScore")).toHaveText(score);
+    await expect(page.locator("#verdictGroups .verdict-line")).toHaveCount(3);
+  });
+});
+
 test.describe("independent panel controls", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");

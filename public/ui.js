@@ -221,20 +221,26 @@ function challengeStatus(state) {
 // The one verdict readout: the word, the score out of 100 on a bot-to-human scale, and one line per
 // check group. The lines link to their group in the checks list. Called with no report while a run
 // is collecting, which resets the card to its pending state.
-export function renderVerdictCard(report = null) {
+const EMPTY_VERDICT_NOTE = {
+  pending: "Waiting for the inspection.",
+  failed: "The inspection could not be scored. Run it again."
+};
+
+// With no report the card shows emptyState: "pending" while a run is in flight, "failed" once it has ended unscored.
+export function renderVerdictCard(report = null, emptyState = "pending") {
   const card = $("#verdictCard");
   if (!card) return;
   const verdict = report?.verdict || {};
   const score = report && Number.isFinite(verdict.score) ? verdict.score : null;
-  $("#verdictWord").textContent = report ? verdictWord(verdict.classification) : verdictWord("pending");
-  $("#verdictWord").dataset.risk = report && verdict.risk ? verdict.risk : "pending";
+  $("#verdictWord").textContent = verdictWord(report ? verdict.classification : emptyState);
+  $("#verdictWord").dataset.risk = report && verdict.risk ? verdict.risk : emptyState;
   $("#verdictScore").textContent = score == null ? "–" : String(score);
   const marker = $("#verdictMarker");
   marker.hidden = score == null;
   marker.style.left = `${score ?? 0}%`;
   $("#verdictGroups").innerHTML = report
     ? renderVerdictLines(buildVerdictGroupLines(buildCheckRows(report)))
-    : `<p class="muted">Waiting for the inspection.</p>`;
+    : `<p class="muted">${escapeHtml(EMPTY_VERDICT_NOTE[emptyState])}</p>`;
 }
 
 function renderVerdictLines(lines) {

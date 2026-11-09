@@ -11,9 +11,7 @@ import { pathToFileURL } from "node:url";
 
 const css = readFileSync(new URL("../public/styles.css", import.meta.url), "utf8");
 
-export const STYLES = css;
-
-export function block(source, start) {
+function block(source, start) {
   const i = source.indexOf(start);
   if (i < 0) throw new Error(`no block ${start}`);
   const open = source.indexOf("{", i);
@@ -29,7 +27,7 @@ function tokens(body) {
   return Object.fromEntries([...body.matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value.trim()]));
 }
 
-export const DARK_SELECTOR = ":root,\n.card-dispatch {";
+const DARK_SELECTOR = ":root,\n.card-dispatch {";
 const dark = tokens(block(css, DARK_SELECTOR));
 const light = { ...dark, ...tokens(block(block(css, "@media (prefers-color-scheme: light)"), ":root {")) };
 

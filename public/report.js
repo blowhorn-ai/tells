@@ -63,6 +63,7 @@ export async function runChecks(state) {
   } catch (error) {
     if (!isLatest()) return null;
     renderVoice(failureVoice(String(error && error.message ? error.message : error)));
+    renderVerdictCard(state.report, "failed");
     $("#jsonOut").textContent = String(error && error.stack ? error.stack : error);
     showInteractionStatus(state, "The verdict could not be scored. Press Run the inspection to send the interaction test again.");
     return false;

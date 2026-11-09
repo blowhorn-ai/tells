@@ -87,8 +87,7 @@ test("human-like input is not failed by any raw check", async ({ page }) => {
 test("Playwright API clicks and fill are caught by the press, centre and key checks", async ({ page }) => {
   const row = await runFamily(page, "playwright api", () => createPlaywrightDriver(page).run());
   expect(row.interaction.task.completed).toBe(true);
-  // Playwright aims at the exact centre; rounding moves it at most 1.41 px, inside the 1.5 px pass line:
-  // warn, or fail when within 0.5 px.
+  // Playwright aims at the exact centre, so every click is within 1 px: warn, or fail when within 0.5 px.
   expect(["warn", "fail"]).toContain(row.statuses.int_centre);
   // page.click() sends the press and release back to back with no hold. The gap measured is scheduling
   // alone: under 10 ms (fail) on an idle machine, 10 to 30 ms (the warn band) under load. Never a pass.

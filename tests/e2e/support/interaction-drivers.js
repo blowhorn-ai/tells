@@ -15,7 +15,7 @@ export const TARGET = {
   submit: '[data-tells-target="submit"]'
 };
 
-// The first report renders a checks table above the drill. Wait for it to finish, so the
+// The first report renders the Checks performed list above the drill. Wait for it to finish, so the
 // drill's positions do not move under a driver that is already aiming at them.
 export async function openDrill(page) {
   const firstReport = page.waitForResponse((response) => response.request().method() === "POST" && response.url().endsWith("/api/report"));

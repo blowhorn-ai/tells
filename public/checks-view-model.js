@@ -493,7 +493,12 @@ function groupSentence(key, judged, flagged) {
 }
 
 // "WebDriver detected, headless browser detected": the first summary as written, the rest in lower
-// case unless their first word is a name or an acronym (WebDriver, VPN, TLS keep their capitals).
+// case unless their first word is a name or an acronym (WebDriver, VPN, TLS, Tor keep their capitals).
+const NAMED_FIRST_WORDS = new Set(["Tor", "Cloudflare"]);
+
 function listSummaries(rows) {
-  return rows.map((row, i) => (i > 0 && /^[A-Z][a-z]*\b/.test(row.summary) ? row.summary[0].toLowerCase() + row.summary.slice(1) : row.summary)).join(", ");
+  return rows.map((row, i) => {
+    const first = /^[A-Z][a-z]*\b/.exec(row.summary)?.[0];
+    return i > 0 && first && !NAMED_FIRST_WORDS.has(first) ? row.summary[0].toLowerCase() + row.summary.slice(1) : row.summary;
+  }).join(", ");
 }
