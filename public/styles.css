@@ -365,8 +365,8 @@ h3 {
   flex: none;
   border-radius: var(--radius-lg);
   background: var(--surface-tint);
-  object-fit: cover;
-  object-position: 46% 40%;
+  object-fit: contain;
+  object-position: center;
 }
 
 /* ---------- Footer ----------

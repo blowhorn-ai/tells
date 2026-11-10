@@ -1,5 +1,5 @@
 const FIGURES = {
-  inspector: { src: "/assets/brand/sleeper-cell-base.webp", alt: "Sleeper Cell, the unit's privacy scout, sweeping for bots with a radar" },
+  inspector: { src: "https://blowhorn.ai/assets/brand/mascot/locked-6/major-6-head.webp", alt: "Major Blowhorn, a teal rooster in a drill sergeant's campaign hat, shouting into his bullhorn" },
   bot: { src: "/assets/brand/robo-recruit.webp", alt: "Robo-Recruit, a wind-up tin-can chicken, saluting" }
 };
 
