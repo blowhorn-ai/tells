@@ -56,8 +56,7 @@ export async function runChecks(state) {
     if (!isLatest()) return null;
     state.report = report;
     renderReport(state, report);
-    $("#copyBtn").disabled = false;
-    $("#downloadBtn").disabled = false;
+    for (const id of ["#copyBtn", "#downloadBtn", "#copyRawBtn", "#downloadRawBtn"]) $(id).disabled = false;
     showInteractionStatus(state, "Interaction test complete. The verdict is shown above.");
     return true;
   } catch (error) {

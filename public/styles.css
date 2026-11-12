@@ -1236,17 +1236,25 @@ pre {
   background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
+/* One disclosure mark for the page: + shut, − (U+2212) open. It lives on details
+   itself, so a check row added after load follows its own open state instead of
+   a class on a wrapper. The panel icons and the check-row marks both read it.
+   The interaction-test chevron sets its own content and does not use this mark. */
+details {
+  --disclosure-mark: "+";
+}
+
+details[open] {
+  --disclosure-mark: "−";
+}
+
 .summary-icon::before {
-  content: "+";
+  content: var(--disclosure-mark);
   color: var(--accent);
   font-family: var(--mono);
   font-size: 1.1rem;
   font-weight: 700;
   line-height: 1;
-}
-
-.toggle-panel[open] > summary .summary-icon::before {
-  content: "-";
 }
 
 .challenge-panel .challenge-toggle-icon::before {
@@ -1273,6 +1281,38 @@ pre {
 
 .toggle-panel[open] > summary {
   margin-bottom: 14px;
+}
+
+/* Raw report header: the title keeps the shared disclosure grid; the icon
+   buttons sit in a third column so they stay in the header at 375px. */
+.raw-panel > summary {
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+}
+
+.raw-panel > summary > span:nth-child(2),
+.raw-panel > summary small {
+  min-width: 0;
+}
+
+.raw-actions {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  align-self: center;
+}
+
+.raw-action {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+}
+
+.raw-action svg {
+  display: block;
 }
 
 .challenge-panel {
@@ -1460,10 +1500,8 @@ input:focus {
   font-family: var(--mono);
   font-size: 1rem;
   line-height: 1.4;
-  content: "+";
+  content: var(--disclosure-mark);
 }
-
-.check-item[open] summary::after { content: "-"; }
 
 .check-item summary .check-icon { margin-top: 1px; }
 
