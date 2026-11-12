@@ -31,10 +31,10 @@ function fromFixture({ events, task }) {
   return buildInteractionReport(events, task);
 }
 
-// Every one of the 13 checks fails at once, with the numbers that make each fail.
+// Every check is at its worst at once: 11 fail, and the four that cannot fail warn.
 function allFailingReport() {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     task: { phraseLength: 14, completed: true, durationMs: 300, fullscreen: false },
     click: {
       clicks: [{
@@ -62,6 +62,8 @@ function allFailingReport() {
       intervalMs: { n: 13, mean: 100, median: 100, stdDev: 1, cv: 0.01, min: 99 },
       dwellMs: null
     },
+    focus: { phraseFocused: false, inputWhileUnfocused: 2, untrustedFocus: 1, focusWithoutGesture: 1, blurOutOfOrder: 1 },
+    visibility: { trustedInput: 4, trustedWhileHidden: 1, trustedWithoutFocus: 1 },
     checks: []
   };
 }
@@ -122,17 +124,17 @@ describe("interaction scoring in the Worker", () => {
     expect(interactionReasons(scoreWith(abandoned))).toEqual([]);
   });
 
-  it("cannot make a verdict bot on its own: 11 raw fails and two warns take 35 points and leave it suspicious", () => {
+  it("cannot make a verdict bot on its own: 11 raw fails and four warns take 37 points and leave it suspicious", () => {
     const report = allFailingReport();
     expect(validateInteractionReport(report), JSON.stringify(validateInteractionReport.errors)).toBe(true);
     const verdict = scoreWith(report);
     const reasons = interactionReasons(verdict);
-    expect(reasons).toHaveLength(13);
-    // int_screen_coords (equal coordinates) and int_coalesced (no coalesced events) are warns, so each costs 1 point at low severity.
-    const warns = ["int_screen_coords", "int_coalesced"];
+    expect(reasons).toHaveLength(15);
+    // These four cannot fail. Each costs 1 point at low severity. The other 11 fail at 3 points.
+    const warns = ["int_screen_coords", "int_coalesced", "int_focus", "int_visibility"];
     for (const id of warns) expect(reasons.find((reason) => reason.id === id).severity).toBe("low");
     expect(new Set(reasons.filter((reason) => !warns.includes(reason.id)).map((reason) => reason.severity))).toEqual(new Set(["medium"]));
-    expect(verdict.score).toBe(65);
+    expect(verdict.score).toBe(63);
     expect(verdict.classification).toBe("suspicious");
   });
 
@@ -155,5 +157,23 @@ describe("interaction scoring in the Worker", () => {
     expect(interactionReasons(withoutTell).map((reason) => reason.id)).toContain("int_trusted");
     // The tell swaps int_trusted's 3-point penalty for synthetic_input's 30, so the score is 27 points lower.
     expect(verdict.score).toBe(withoutTell.score - 27);
+  });
+
+  it("re-derives focus and visibility from the counts and ignores a forged pass", () => {
+    const clean = fromFixture(humanLike());
+    const tampered = {
+      ...clean,
+      focus: { ...clean.focus, untrustedFocus: 2 },
+      visibility: { ...clean.visibility, trustedWhileHidden: 3 },
+      checks: clean.checks.map((check) => ({ ...check, status: "pass", observed: "forged" }))
+    };
+    const reasons = interactionReasons(scoreWith(tampered));
+    expect(reasons.map((reason) => reason.id).sort()).toEqual(["int_focus", "int_visibility"]);
+    for (const reason of reasons) expect(reason.severity).toBe("low");
+
+    const shown = withValidInteraction({ interaction: tampered }).interaction.checks;
+    expect(shown.find((check) => check.id === "int_focus").status).toBe("warn");
+    expect(shown.find((check) => check.id === "int_visibility").status).toBe("warn");
+    expect(shown.every((check) => check.status !== "fail")).toBe(true);
   });
 });

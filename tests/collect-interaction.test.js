@@ -24,14 +24,14 @@ function task(events, overrides = {}) {
 }
 
 describe("buildInteractionReport", () => {
-  it("returns every one of the 13 checks, each marked provisional", () => {
+  it("returns every one of the 15 checks, each marked provisional", () => {
     const report = build(humanLike());
     expect(report.checks.map((check) => check.id)).toEqual(INTERACTION_CHECK_IDS);
     for (const check of report.checks) {
       expect(check.provisional).toBe(true);
       expect(check.observed.length).toBeGreaterThan(0);
     }
-    expect(report.schemaVersion).toBe(2);
+    expect(report.schemaVersion).toBe(3);
   });
 
   it("gives every click both its centre offset and its screen offset", () => {
@@ -172,6 +172,8 @@ describe("buildInteractionReport", () => {
     expect(statuses.int_click_chain).toBe("pass");
     expect(statuses.int_key_chain).toBe("pass");
     expect(statuses.int_value_source).toBe("pass");
+    expect(statuses.int_focus).toBe("pass");
+    expect(statuses.int_visibility).toBe("pass");
     for (const id of ["int_click_detail", "int_screen_coords", "int_coalesced", "int_premove", "int_centre", "int_press"]) {
       expect(statuses[id], id).toBe("na");
     }
@@ -190,6 +192,34 @@ describe("buildInteractionReport", () => {
       { type: "paste", t: 102, target: "phrase", isTrusted: false }
     ];
     expect(build({ events, task: { startMs: 0, endMs: 200, completed: true, valueMatches: false, valueSetterNative: true, fullscreen: false } }).typing.untrusted).toBe(3);
+  });
+
+  it("warns on script focus with no click and on trusted input while the tab is hidden", () => {
+    const { events, task: taskFacts } = humanLike();
+    const phraseFocus = events.find((event) => event.type === "focus" && event.target === "phrase");
+    phraseFocus.isTrusted = false;
+    for (const event of events) {
+      if (event.target === "phrase" && event.type === "keydown") {
+        event.hidden = true;
+        event.hasFocus = false;
+      }
+    }
+    const report = buildInteractionReport(events, taskFacts);
+    expect(report.focus).toMatchObject({ phraseFocused: true, inputWhileUnfocused: 0, untrustedFocus: 1, focusWithoutGesture: 0, blurOutOfOrder: 0 });
+    expect(report.visibility.trustedWhileHidden).toBeGreaterThan(0);
+    expect(report.visibility.trustedWithoutFocus).toBeGreaterThan(0);
+    const statuses = statusesOf(report);
+    expect(statuses.int_focus).toBe("warn");
+    expect(statuses.int_visibility).toBe("warn");
+    expect(JSON.stringify(report)).not.toMatch(/"hidden":|"hasFocus":/);
+  });
+
+  it("counts a blur that arrives before its target was focused as out of order, and still only warns", () => {
+    const { events, task: taskFacts } = humanLike();
+    events.unshift({ type: "blur", t: 0, target: "phrase", isTrusted: true });
+    const report = buildInteractionReport(events, taskFacts);
+    expect(report.focus.blurOutOfOrder).toBe(1);
+    expect(statusesOf(report).int_focus).toBe("warn");
   });
 
   it("fails trust for a script-made keyboard activation", () => {

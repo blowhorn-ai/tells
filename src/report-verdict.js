@@ -16,7 +16,7 @@ import {
 
 // The interaction checks are provisional and stay warn-only until 20+ human runs have set their
 // thresholds. While this is false a raw fail adds a medium reason and a raw warn adds a low one, and
-// the most the checks can ever take off the score is 39, so they cannot make a verdict bot on their own.
+// the most the checks can ever take off the score is 37, so they cannot make a verdict bot on their own.
 // Setting it to true scores a raw fail high and a raw warn medium.
 export const INTERACTION_CALIBRATED = false;
 
@@ -519,7 +519,7 @@ export function detectionMatrix(server, client) {
       { name: "Latency", status: "checked", notes: "Browser-to-edge timing signals." },
       { name: "Remote-control tells", status: "checked", notes: "Patched webdriver getters, replaced native functions, driver keys on document, script-generated or hidden-page input, zero-size windows, and permission contradictions." },
       { name: "Behavioural classification", status: "checked", notes: "Pointer, key, scroll, focus, and timing activity." },
-      { name: "Interaction", status: "checked", notes: "Start, type-in and Submit: click order and geometry, press length, key rhythm and dwell, and whether the value arrived as typed keys." }
+      { name: "Interaction", status: "checked", notes: "Start, type-in and Submit: click order and geometry, press length, key rhythm and dwell, focus and blur, tab visibility, and whether the value arrived as typed keys." }
     );
   }
 

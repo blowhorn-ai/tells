@@ -214,7 +214,7 @@ describe("Interaction row", () => {
   it("passes a person-like run and says how long it took and what was judged", () => {
     const row = scoredWith(reportFrom(humanLike()))["Interaction"];
     expect(row).toMatchObject({ status: "pass", label: "Pass", slug: "interaction", summary: "Typing and clicks look human" });
-    expect(row.result).toMatch(/^\d+\.\d s from Start to Submit · 13 of 13 checks judged$/);
+    expect(row.result).toMatch(/^\d+\.\d s from Start to Submit · 15 of 15 checks judged$/);
   });
 
   it("warns, never fails, on script-made input while the checks are uncalibrated", () => {

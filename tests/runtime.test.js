@@ -158,6 +158,23 @@ describe("discardSubmitAttempt", () => {
     expect(state.interaction.events.filter((event) => event.target === "submit")).toEqual(correct);
   });
 
+  it("removes a blur of the phrase field that lands inside a rejected Submit press", () => {
+    const withBlur = [
+      { type: "pointerdown", t: 300, target: "submit", isTrusted: true },
+      { type: "mousedown", t: 300, target: "submit", isTrusted: true },
+      { type: "blur", t: 301, target: "phrase", isTrusted: true },
+      { type: "focus", t: 302, target: "submit", isTrusted: true },
+      { type: "pointerup", t: 380, target: "submit", isTrusted: true },
+      { type: "mouseup", t: 380, target: "submit", isTrusted: true },
+      { type: "click", t: 381, target: "submit", isTrusted: true, detail: 1 }
+    ];
+    const state = makeState({ interaction: { startMs: 0, report: null, events: [...startClick, ...phraseTyping, ...withBlur] } });
+
+    discardSubmitAttempt(state);
+
+    expect(state.interaction.events).toEqual([...startClick, ...phraseTyping]);
+  });
+
   it("removes a keyboard Submit attempt that starts with keydown", () => {
     const keyboardPress = [
       { type: "keydown", t: 400, target: "submit", keyClass: "control", repeat: false },
@@ -189,7 +206,7 @@ class FakeElement {
   }
 }
 
-const NON_BUBBLING_TYPES = new Set(["focus", "pointerenter"]);
+const NON_BUBBLING_TYPES = new Set(["focus", "blur", "pointerenter"]);
 
 function pageWithCapture() {
   const listeners = {};
@@ -212,6 +229,37 @@ describe("recordInteraction", () => {
     delete globalThis.window;
     delete globalThis.document;
     delete globalThis.Element;
+  });
+
+  it("records Tab from outside the task as a key gesture and does not count that key twice", () => {
+    const { state, dispatch } = pageWithCapture();
+    dispatch("keydown", "body", { key: "Tab", code: "Tab", repeat: false });
+    dispatch("focus", "start");
+    state.interaction.startMs = 1;
+
+    expect(state.interaction.events[0]).toMatchObject({ type: "keydown", target: "page", keyClass: "tab", isTrusted: true });
+    expect(state.interaction.events[0]).not.toHaveProperty("key");
+    expect(summarizeInput(inputEvents(state)).count).toBe(1);
+    const report = buildInteractionReport(state.interaction.events, { startMs: 1, endMs: 1e9, completed: true, valueMatches: false, valueSetterNative: true, fullscreen: false });
+    expect(report.focus.focusWithoutGesture).toBe(0);
+  });
+
+  it("counts a trusted focus with no preceding click or key", () => {
+    const { state, dispatch } = pageWithCapture();
+    state.interaction.startMs = 1;
+    dispatch("focus", "phrase");
+    dispatch("keydown", "phrase", { key: "a", repeat: false });
+
+    const report = buildInteractionReport(state.interaction.events, { startMs: 1, endMs: 1e9, completed: true, valueMatches: false, valueSetterNative: true, fullscreen: false });
+    expect(report.focus).toMatchObject({ phraseFocused: true, focusWithoutGesture: 1, inputWhileUnfocused: 0 });
+    expect(report.checks.find((check) => check.id === "int_focus").status).toBe("warn");
+  });
+
+  it("records blur on a task control, since focus does not bubble and neither does blur", () => {
+    const { state, dispatch } = pageWithCapture();
+    dispatch("focus", "phrase");
+    dispatch("blur", "phrase");
+    expect(state.interaction.events.map((event) => [event.type, event.target])).toEqual([["focus", "phrase"], ["blur", "phrase"]]);
   });
 
   it("records Enter or Space on Start before the test starts, for keyboard activation only", () => {
@@ -398,10 +446,11 @@ describe("inputEvents", () => {
 
     expect(state.events).toEqual([]);
     expect(collectTells(state).input).toEqual({ count: 2, untrusted: 0, trustedWhileHidden: 1, trustedWithoutFocus: 1 });
-    // The report keeps its shape: hidden and hasFocus stay in the page.
+    // The report carries the counts. The raw per-event flags stay in the page.
     const report = buildInteractionReport(state.interaction.events, { startMs: 1, endMs: 1e9, completed: false, valueMatches: false, valueSetterNative: true, fullscreen: false });
     expect(validateInteractionReport(report), JSON.stringify(validateInteractionReport.errors)).toBe(true);
-    expect(JSON.stringify(report)).not.toMatch(/hidden|hasFocus/);
+    expect(report.visibility).toEqual({ trustedInput: 2, trustedWhileHidden: 1, trustedWithoutFocus: 1 });
+    expect(JSON.stringify(report)).not.toMatch(/"hidden":|"hasFocus":/);
   });
 
   it("does not count trusted hovers on an unfocused or hidden page as input without focus or while hidden", () => {
