@@ -224,7 +224,7 @@ const CHECKS = [
     group: "behavior",
     pass: "Pointer and key timing look human",
     slug: "behavioural-classification",
-    reasons: ["behavior_score_low", "behavior_score_borderline"],
+    reasons: ["behavior_score_low", "behavior_score_borderline", "behavior_evidence_invalid"],
     available: ({ client }) => Boolean(client?.behavior),
     observe: ({ client }) => {
       const behavior = client.behavior;
@@ -352,6 +352,7 @@ export const REASON_PLAIN = {
   performance_memory_anomaly: "Heap readings look impossible",
   behavior_score_low: "Pointer and key input look automated",
   behavior_score_borderline: "Pointer and key input are borderline",
+  behavior_evidence_invalid: "Behaviour evidence could not be read",
   interaction_report_invalid: "Interaction report could not be read",
   webdriver_own_property: "WebDriver flag redefined in the browser",
   webdriver_getter_patched: "WebDriver flag patched",

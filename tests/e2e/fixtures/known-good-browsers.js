@@ -1,3 +1,40 @@
+import { scoreBehavior, summarizePointerMoves } from "../../../public/behavior-score.js";
+
+// Evidence the Worker can re-derive. The known-good sessions are active enough to clear 0.5;
+// the automation control is an idle page, which derives to 0.03.
+function behaviorFromEvents(recentEvents, { elapsedMs, rafStdDev }) {
+  const eventCounts = {};
+  for (const event of recentEvents) eventCounts[event.type] = (eventCounts[event.type] || 0) + 1;
+  const pointer = summarizePointerMoves(recentEvents);
+  const summary = {
+    elapsedMs,
+    eventCounts,
+    pointerMoveSamples: pointer.pointerMoveSamples,
+    pointerDistance: pointer.pointerDistance,
+    pointerSpeedStdDev: pointer.pointerSpeedStdDev,
+    rafStdDev
+  };
+  return {
+    score: scoreBehavior({ ...summary, interactionCompleted: false }),
+    summary,
+    recentEvents
+  };
+}
+
+const activeBehavior = behaviorFromEvents([
+  { type: "pointermove", t: 100, x: 0, y: 0 },
+  { type: "pointermove", t: 180, x: 40, y: 10 },
+  { type: "pointermove", t: 260, x: 90, y: 30 },
+  { type: "pointermove", t: 360, x: 150, y: 40 },
+  { type: "pointermove", t: 480, x: 220, y: 80 },
+  { type: "pointerdown", t: 520, x: 220, y: 80 },
+  { type: "click", t: 560, x: 220, y: 80 },
+  { type: "keydown", t: 620 },
+  { type: "scroll", t: 740, x: 0, y: 40 }
+], { elapsedMs: 5600, rafStdDev: 1.5 });
+
+const idleBehavior = behaviorFromEvents([], { elapsedMs: 5000, rafStdDev: 0 });
+
 export const knownGoodBrowserReports = [
   buildBrowserReport({
     name: "Chrome on macOS",
@@ -180,10 +217,7 @@ export const automationControlReport = {
       chromeMajor: 126,
       input: { count: 4, untrusted: 2, trustedWhileHidden: 2, trustedWithoutFocus: 2 }
     },
-    behavior: {
-      score: 0.03,
-      summary: { elapsedMs: 5000, counts: {} }
-    }
+    behavior: idleBehavior
   }
 };
 
@@ -279,13 +313,7 @@ function buildBrowserReport({ name, headers, browser, worker }) {
         }
       },
       consistency: {},
-      behavior: {
-        score: 0.96,
-        summary: {
-          elapsedMs: 5600,
-          counts: { pointermove: 9, pointerdown: 1, click: 1, keydown: 2, scroll: 1 }
-        }
-      }
+      behavior: activeBehavior
     }
   };
 }

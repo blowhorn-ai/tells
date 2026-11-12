@@ -7,7 +7,25 @@ import { humanLike, scriptedElementClick } from "./fixtures/interaction-events.j
 
 const server = { userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36" };
 const interactionReasons = (verdict) => verdict.reasons.filter((reason) => reason.id.startsWith("int_") || reason.id === "interaction_report_invalid");
-const scoreWith = (interaction) => scoreReport({ server, client: { interaction } });
+// One click, one key and one scroll over 5s. The Worker derives 0.54, so behaviour adds no penalty
+// and these tests still measure the interaction checks on their own.
+const passingBehavior = {
+  score: 0.54,
+  summary: {
+    elapsedMs: 5000,
+    eventCounts: { click: 1, keydown: 1, scroll: 1 },
+    pointerMoveSamples: 0,
+    pointerDistance: 0,
+    pointerSpeedStdDev: 0,
+    rafStdDev: 0
+  },
+  recentEvents: [
+    { type: "click", t: 560 },
+    { type: "keydown", t: 620 },
+    { type: "scroll", t: 740 }
+  ]
+};
+const scoreWith = (interaction) => scoreReport({ server, client: { behavior: passingBehavior, interaction } });
 
 function fromFixture({ events, task }) {
   return buildInteractionReport(events, task);

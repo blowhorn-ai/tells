@@ -1,3 +1,4 @@
+import { assessBehaviorEvidence } from "../public/behavior-score.js";
 import { validateInteractionReport } from "../public/generated/validate-interaction-report.js";
 import { evaluateInteractionChecks, INTERACTION_CHECK_IDS } from "../public/interaction-checks.js";
 import { getSuspiciousProxyHeaders } from "./proxy-headers.js";
@@ -73,6 +74,7 @@ export const REASON_IDS = Object.freeze([
   "performance_memory_anomaly",
   "behavior_score_low",
   "behavior_score_borderline",
+  "behavior_evidence_invalid",
   "interaction_report_invalid",
   ...INTERACTION_CHECK_IDS
 ]);
@@ -175,14 +177,17 @@ export function enrichClientConsistency(client, server) {
   return { ...client, consistency };
 }
 
-export function scoreReport(report, interaction = deriveInteraction(report.client?.interaction)) {
+export function scoreReport(
+  report,
+  interaction = deriveInteraction(report.client?.interaction),
+  behavior = deriveBehavior(report.client?.behavior, interaction?.task?.completed === true)
+) {
   const reasons = [];
   let score = 100;
 
   const server = report.server || {};
   const client = report.client || {};
   const browser = client.browser || {};
-  const behavior = client.behavior || {};
   const fingerprints = client.fingerprints || {};
   const automation = client.automation || {};
   const consistency = client.consistency || {};
@@ -326,9 +331,17 @@ export function scoreReport(report, interaction = deriveInteraction(report.clien
     penalize(12, "performance_memory_anomaly", "medium", "performance.memory samples contain impossible heap values.", memoryAnomalies);
   }
 
-  if (typeof behavior.score === "number") {
-    if (behavior.score < 0.25) penalize(25, "behavior_score_low", "high", "Behavior score is very low.", behavior.summary);
-    else if (behavior.score < 0.5) penalize(12, "behavior_score_borderline", "medium", "Behavior score is borderline.", behavior.summary);
+  // A server-only check has no client report, so there is no behaviour evidence to require.
+  // A report that omits the evidence, or whose evidence does not hold together, is its own finding:
+  // the claimed score is ignored, and the absence is not a pass.
+  if (report.client) {
+    if (behavior == null) {
+      penalize(25, "behavior_evidence_invalid", "high", "Behavior evidence was missing, malformed or inconsistent and was not scored.");
+    } else if (behavior.score < 0.25) {
+      penalize(25, "behavior_score_low", "high", "Behavior score is very low.", behavior.summary);
+    } else if (behavior.score < 0.5) {
+      penalize(12, "behavior_score_borderline", "medium", "Behavior score is borderline.", behavior.summary);
+    }
   }
 
   scoreInteraction(interaction, penalize, new Set(reasons.map((reason) => reason.id)));
@@ -338,6 +351,19 @@ export function scoreReport(report, interaction = deriveInteraction(report.clien
   const risk = score >= 75 ? "low" : score >= 45 ? "medium" : "high";
 
   return { score, classification, risk, reasons };
+}
+
+// The client's score is ignored. The summary and the posted event tail are scored with the same
+// formula the page uses. Returns null when that evidence is missing, malformed or inconsistent,
+// and otherwise the behaviour object with the server score. A claimed score that disagrees is
+// kept on claimedScore and is not an input to the verdict.
+export function deriveBehavior(behavior, interactionCompleted = false) {
+  const assessed = assessBehaviorEvidence(behavior, interactionCompleted);
+  if (!assessed.ok) return null;
+  const { score: claimed, claimedScore: _claimed, ...rest } = behavior;
+  const derived = { ...rest, score: assessed.score };
+  if (typeof claimed === "number" && Number.isFinite(claimed) && claimed !== assessed.score) derived.claimedScore = claimed;
+  return derived;
 }
 
 // The client's own checks array is ignored: every status is re-derived from the numbers, so the
@@ -367,6 +393,22 @@ export function scoreInteraction(interaction, penalize, scoredIds = new Set()) {
     if (check.id === "int_trusted" && scoredIds.has("synthetic_input")) continue;
     penalize(rule.points, check.id, rule.severity, `Interaction test: ${check.observed}.`, { status: check.status, provisional: true });
   }
+}
+
+// Replaces client.behavior with the server-derived score. Evidence that cannot be scored is
+// removed, so the response does not echo a number the verdict refused. interactionCompleted
+// is the validated interaction report's task.completed; when omitted, it is read from the client.
+export function withDerivedBehavior(client, interactionCompleted) {
+  if (!client || client.behavior == null) return client;
+  const completed = typeof interactionCompleted === "boolean"
+    ? interactionCompleted
+    : deriveInteraction(client.interaction)?.task?.completed === true;
+  const behavior = deriveBehavior(client.behavior, completed);
+  if (behavior == null) {
+    const { behavior: _invalid, ...rest } = client;
+    return rest;
+  }
+  return { ...client, behavior };
 }
 
 // The client copy that goes back in the response: an interaction report that failed validation is removed,
