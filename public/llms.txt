@@ -18,7 +18,11 @@
 - The interaction test (Start, type a fixed phrase, Submit): its 13 int_*
   checks and thresholds are at https://tells.blowhorn.ai/checks/interaction/.
   They are provisional and warn-only until calibrated on 20+ human runs.
-  The report is window.__tellsInteraction and client.interaction.
+  Harnesses read the full /api/report response from [data-tells-report="raw"]
+  (pre#jsonOut). The interaction report is /client/interaction, with
+  server-derived check statuses. It is complete when
+  /client/interaction/task/completed is true. Before Submit, that element
+  holds "No report yet." or a report whose interaction is not completed.
 - The tool: https://tells.blowhorn.ai/
 - Source: https://github.com/layer5io/blowhorn-tells
 

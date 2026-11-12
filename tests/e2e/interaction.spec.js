@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { validateInteractionReport } from "../../public/generated/validate-interaction-report.js";
 import { INTERACTION_CHECK_IDS } from "../../public/interaction-checks.js";
 import {
   cdpClick,
@@ -15,6 +16,9 @@ import {
 
 // Tall enough that the Start, phrase and Submit controls are all on screen at once.
 test.use({ viewport: { width: 1280, height: 900 } });
+
+// Harness read path: the full /api/report body rendered in the Raw report panel.
+const RAW_REPORT = '[data-tells-report="raw"]';
 
 const SHORT = (id) => id.replace(/^int_/, "");
 const CODE = { pass: "P", warn: "W", fail: "F", na: "-" };
@@ -38,6 +42,22 @@ function printRow(row) {
   }
 }
 
+// The interaction report lives at /client/interaction of the raw report. It is complete when
+// task.completed is true. Before Submit the panel is "No report yet." or an unfinished interaction.
+async function readCompletedInteraction(page) {
+  let interaction;
+  await expect.poll(async () => {
+    const text = await page.locator(RAW_REPORT).textContent();
+    try {
+      interaction = JSON.parse(text).client.interaction;
+    } catch {
+      interaction = null;
+    }
+    return interaction?.task?.completed === true;
+  }).toBe(true);
+  return interaction;
+}
+
 // Opens the drill, arms the completion listener, runs the driver, and reads back what the page
 // and the Worker saw. The Worker's response is the one that carries the completed report.
 async function runFamily(page, family, drive) {
@@ -53,7 +73,7 @@ async function runFamily(page, family, drive) {
   const body = await response.json();
   // Once the verdict is in, the status line says the test is done rather than still checking.
   await expect(page.locator("#challengeStatus")).toHaveText("Interaction test complete. The verdict is shown above.");
-  const interaction = await page.evaluate(() => window.__tellsInteraction);
+  const interaction = await readCompletedInteraction(page);
   const statuses = Object.fromEntries((interaction?.checks || []).map((check) => [check.id, check.status]));
   const reasons = (body.verdict?.reasons || []).filter((reason) => reason.id.startsWith("int_"));
   // The Worker scores script-made input once, as synthetic_input, so int_trusted adds no reason of its own then.
@@ -81,6 +101,7 @@ function expectWorkerAgreesWithPage(row) {
 test("human-like input is not failed by any raw check", async ({ page }) => {
   test.setTimeout(90_000);
   const row = await runFamily(page, "a human-like", () => createHumanDriver(page).run());
+  expect(validateInteractionReport(row.interaction), JSON.stringify(validateInteractionReport.errors)).toBe(true);
   expect(row.interaction.task.completed).toBe(true);
   expect(row.interaction.schemaVersion).toBe(3);
   expect(failed(row)).toEqual([]);
@@ -136,11 +157,9 @@ test("a CDP press with clickCount 0 fires no click, so it starts nothing", async
   await openDrill(page);
   const cdp = await context.newCDPSession(page);
   await cdpClick(page, cdp, TARGET.start, 0);
-  const state = await page.evaluate(() => ({
-    status: document.querySelector("#challengeStatus").textContent,
-    scored: window.__tellsInteraction === undefined
-  }));
-  expect(state).toEqual({ status: "Press Start to begin.", scored: true });
+  await expect(page.locator("#challengeStatus")).toHaveText("Press Start to begin.");
+  const interaction = JSON.parse(await page.locator(RAW_REPORT).textContent()).client.interaction;
+  expect(interaction.task.completed).toBe(false);
 });
 
 test("script-made clicks, keys and value assignment fail trust and value source", async ({ page }) => {
@@ -183,7 +202,7 @@ test("a slower inspection started before Submit does not overwrite the verdict f
   await olderRequest;
   await createKeyboardDriver(page).run();
   await completedResponse;
-  const reported = async () => JSON.parse(await page.locator("#jsonOut").textContent()).client.interaction.task.completed;
+  const reported = async () => JSON.parse(await page.locator(RAW_REPORT).textContent()).client.interaction.task.completed;
   await expect.poll(reported).toBe(true);
 
   releaseOlder();
