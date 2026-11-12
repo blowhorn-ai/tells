@@ -1,4 +1,4 @@
-// The 13 interaction checks: thresholds and status rules, in one place.
+// The 15 interaction checks: thresholds and status rules, in one place.
 // The page (public/collect-interaction.js) and the Worker (src/report-verdict.js) both import
 // this module, so the two sides can never disagree on a status. Every input is a field of the
 // interaction report (schemas/interaction-report.schema.json); nothing here reads the DOM.
@@ -21,7 +21,14 @@ export const INTERACTION_THRESHOLDS = {
   dwellPassMinMs: 40,
   dwellPassMaxMs: 250,
   taskPassMs: 1500,
-  taskFailMs: 800
+  taskFailMs: 800,
+  // Focus, blur and tab visibility are warn-only: a count above the pass line warns, and nothing here fails.
+  focusUntrustedPass: 0,
+  focusWithoutGesturePass: 0,
+  focusInputUnfocusedPass: 0,
+  focusBlurOutOfOrderPass: 0,
+  visibilityHiddenPass: 0,
+  visibilityUnfocusedPass: 0
 };
 
 export const INTERACTION_CHECK_IDS = [
@@ -37,7 +44,9 @@ export const INTERACTION_CHECK_IDS = [
   "int_value_source",
   "int_key_rhythm",
   "int_dwell",
-  "int_task_speed"
+  "int_task_speed",
+  "int_focus",
+  "int_visibility"
 ];
 
 // Each press goes down before it comes up, and the pointer event before its mouse event. Whether mousedown comes before
@@ -184,6 +193,46 @@ const EVALUATORS = {
     if (durationMs >= T.taskPassMs) return result("pass", observed);
     if (durationMs >= T.taskFailMs) return result("warn", observed);
     return result("fail", observed);
+  },
+
+  // Warn-only. A person focuses the phrase field with the click or the key before typing, and blur
+  // fires on the control that is leaving. Focus with no preceding click or key, typing into an
+  // unfocused field, a blur with nothing focused, and Submit without the field ever being focused
+  // are all warnings, never fails.
+  int_focus(report) {
+    const focus = report.focus;
+    const problems = [];
+    if (focus.phraseFocused !== true) problems.push("phrase field was never focused");
+    if (focus.inputWhileUnfocused > T.focusInputUnfocusedPass) {
+      problems.push(`${focus.inputWhileUnfocused} phrase inputs while the field was not focused`);
+    }
+    if (focus.untrustedFocus > T.focusUntrustedPass) {
+      problems.push(`${focus.untrustedFocus} focus events came from script`);
+    }
+    if (focus.focusWithoutGesture > T.focusWithoutGesturePass) {
+      problems.push(`${focus.focusWithoutGesture} focus events had no preceding click or key`);
+    }
+    if (focus.blurOutOfOrder > T.focusBlurOutOfOrderPass) {
+      problems.push(`${focus.blurOutOfOrder} blur events were out of order`);
+    }
+    if (!problems.length) return result("pass", "phrase focused before typing, with blur and focus in order");
+    return result("warn", problems.join("; "));
+  },
+
+  // Warn-only. Trusted input while the tab is hidden or the page is unfocused is an automation tell.
+  // With no trusted input there is nothing to judge. A count above the pass line warns and never fails.
+  int_visibility(report) {
+    const { trustedInput, trustedWhileHidden, trustedWithoutFocus } = report.visibility;
+    if (!trustedInput) return na("no trusted input");
+    const problems = [];
+    if (trustedWhileHidden > T.visibilityHiddenPass) {
+      problems.push(`${trustedWhileHidden} trusted inputs while the tab was hidden`);
+    }
+    if (trustedWithoutFocus > T.visibilityUnfocusedPass) {
+      problems.push(`${trustedWithoutFocus} trusted inputs while the page was unfocused`);
+    }
+    if (!problems.length) return result("pass", "tab visible and page focused for every trusted input");
+    return result("warn", problems.join("; "));
   }
 };
 

@@ -5,9 +5,9 @@
   "description": "Summary of the interaction test: counts, timings and event-order facts for one Start, type, Submit run. No raw event stream, no key values, no page coordinates.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "task", "click", "typing", "checks"],
+  "required": ["schemaVersion", "task", "click", "typing", "focus", "visibility", "checks"],
   "properties": {
-    "schemaVersion": { "const": 2 },
+    "schemaVersion": { "const": 3 },
     "task": {
       "type": "object",
       "additionalProperties": false,
@@ -92,6 +92,30 @@
         "valueSetterNative": { "type": ["boolean", "null"] },
         "intervalMs": { "$ref": "#/$defs/stats" },
         "dwellMs": { "$ref": "#/$defs/stats" }
+      }
+    },
+    "focus": {
+      "description": "Focus and blur counts for Start, the phrase field and Submit. No event list and no timestamps.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["phraseFocused", "inputWhileUnfocused", "untrustedFocus", "focusWithoutGesture", "blurOutOfOrder"],
+      "properties": {
+        "phraseFocused": { "type": "boolean" },
+        "inputWhileUnfocused": { "type": "integer", "minimum": 0 },
+        "untrustedFocus": { "type": "integer", "minimum": 0 },
+        "focusWithoutGesture": { "type": "integer", "minimum": 0 },
+        "blurOutOfOrder": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "visibility": {
+      "description": "Trusted input counted while the tab was hidden or the page was unfocused. No event list and no timestamps.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trustedInput", "trustedWhileHidden", "trustedWithoutFocus"],
+      "properties": {
+        "trustedInput": { "type": "integer", "minimum": 0 },
+        "trustedWhileHidden": { "type": "integer", "minimum": 0 },
+        "trustedWithoutFocus": { "type": "integer", "minimum": 0 }
       }
     },
     "checks": {

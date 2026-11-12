@@ -185,7 +185,8 @@ export function cdpPerKeyExactTiming() {
 export function keyboardActivation({ target, t, key, trusted = true }) {
   const base = (type, time, extra = {}) => ({ type, t: time, target, isTrusted: trusted, ...extra });
   const keyClass = key === " " ? "space" : "enter";
-  const events = [base("focus", t - 40), base("keydown", t, { keyClass, repeat: false })];
+  // Tab is recorded on the control that is about to receive focus: the key comes first, then focus.
+  const events = [base("keydown", t - 70, { keyClass: "tab", repeat: false }), base("focus", t - 40), base("keydown", t, { keyClass, repeat: false })];
   if (keyClass === "space") events.push(base("keyup", t + 60, { keyClass, repeat: false }));
   events.push(base("click", keyClass === "space" ? t + 61 : t + 1, { detail: 0 }));
   return events;
@@ -195,9 +196,16 @@ export function keyboardActivation({ target, t, key, trusted = true }) {
 // needs a pointer should be not judged, and the key checks should pass.
 export function keyboardRun() {
   const start = keyboardActivation({ target: "start", t: START_MS, key: "Enter" });
+  // Tab leaves Start and focuses the phrase field before any typing, then leaves the field for Submit.
+  const toPhrase = [
+    { type: "blur", t: START_MS + 80, target: "start", isTrusted: true },
+    { type: "focus", t: START_MS + 81, target: "phrase", isTrusted: true }
+  ];
   const typed = typedPhrase({ startT: START_MS + 900, dwell: () => 90, gap: () => 120 });
-  const submit = keyboardActivation({ target: "submit", t: typed.endT + 700, key: " " });
-  const events = [...start, ...typed.events, ...submit];
+  const submitT = typed.endT + 700;
+  const toSubmit = [{ type: "blur", t: submitT - 50, target: "phrase", isTrusted: true }];
+  const submit = keyboardActivation({ target: "submit", t: submitT, key: " " });
+  const events = [...start, ...toPhrase, ...typed.events, ...toSubmit, ...submit];
   return { events, task: task(events, { valueMatches: true, valueSetterNative: true }) };
 }
 

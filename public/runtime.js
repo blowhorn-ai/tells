@@ -6,9 +6,11 @@ export const BEHAVIOR_CHECKPOINTS_MS = [1500, 4000, 7000, 10000, 15000];
 
 // The interaction test's three buttons. Only events on these elements are recorded for it.
 const INTERACTION_TARGETS = new Set(["start", "phrase", "submit"]);
-const INTERACTION_TYPES = ["pointerover", "pointerenter", "pointerdown", "mousedown", "pointerup", "mouseup", "click", "focus", "keydown", "keypress", "keyup", "beforeinput", "input", "paste"];
+const INTERACTION_TYPES = ["pointerover", "pointerenter", "pointerdown", "mousedown", "pointerup", "mouseup", "click", "focus", "blur", "keydown", "keypress", "keyup", "beforeinput", "input", "paste"];
 const INTERACTION_POINTER_TYPES = new Set(["pointerover", "pointerenter", "pointerdown", "mousedown", "pointerup", "mouseup", "click"]);
 const HOVER_TYPES = new Set(["pointerover", "pointerenter", "focus"]);
+// Focus is kept when the buffer is full: the focus check reads it. A blur is not a hover either.
+const EVICTABLE_TYPES = new Set(["pointerover", "pointerenter"]);
 const INTERACTION_KEY_TYPES = new Set(["keydown", "keypress", "keyup", "beforeinput", "input", "paste"]);
 const KEY_EVENT_TYPES = new Set(["keydown", "keypress", "keyup"]);
 // Keys that activate a button. collect-interaction.js uses them to mark a click as keyboard-made.
@@ -94,7 +96,11 @@ function recordInteraction(state, event, heldKeyClasses) {
   if (interaction.endMs !== null) return;
   const element = event.target instanceof Element ? event.target.closest("[data-tells-target]") : null;
   const target = INTERACTION_TARGETS.has(element?.dataset.tellsTarget) ? element.dataset.tellsTarget : null;
-  if (!target) return;
+  if (!target) {
+    // Tab from outside the three controls is the key that focuses the next one. The key itself is not stored.
+    if (event.type === "keydown" && event.key === "Tab" && !event.repeat) recordTabGesture(state, event);
+    return;
+  }
   // Keys and text count only once the test has started; the pointer on the buttons counts from page load.
   // The one exception is Enter or Space on Start, which is how a keyboard user starts the test; collect-interaction.js reads it only to tell the click apart.
   const eventKeyClass = KEY_EVENT_TYPES.has(event.type) ? keyClassOf(heldKeyClasses, event) : null;
@@ -112,8 +118,8 @@ function recordInteraction(state, event, heldKeyClasses) {
   }
 
   const t = Math.round(performance.now() - state.startedAt);
-  // hidden and hasFocus feed tells.input through inputEvents; buildInteractionReport does not send them.
-  // Hovers carry neither: browsers deliver them to a visible window that is not focused.
+  // hidden and hasFocus are counted into the interaction report's visibility section. The raw flags are not sent.
+  // Hovers and focus carry neither: browsers deliver a hover to a visible window that is not focused.
   const record = { type: event.type, t, target, ...(HOVER_TYPES.has(event.type) ? { isTrusted: event.isTrusted } : inputContext(event)) };
   if (INTERACTION_POINTER_TYPES.has(event.type)) {
     const rect = element.getBoundingClientRect();
@@ -140,14 +146,34 @@ function recordInteraction(state, event, heldKeyClasses) {
 // bubbles: true), or when the state log has since shifted its copy out.
 export function inputEvents(state) {
   const logged = new Set(state.events);
-  return [...state.events, ...state.interaction.events.filter((event) => !logged.has(stateLogCopyOf.get(event)))];
+  return [...state.events, ...state.interaction.events.filter((event) => event.target !== "page" && !logged.has(stateLogCopyOf.get(event)))];
 }
 
-// Over the cap, drop the oldest hover or focus event, so a flood of hovers never fills the buffer. No chain
-// check needs them. Any other event would leave a hole, so with no hover to drop this returns false and the
-// new event is dropped and counted instead.
+// A Tab whose target is outside the task. Stored like any other keydown so the focus check can see
+// that the following focus came from the keyboard. target "page" matches none of the click buffers.
+// inputEvents skips it: the window listener already counted the same key.
+function recordTabGesture(state, event) {
+  const interaction = state.interaction;
+  if (interaction.endMs !== null) return;
+  if (interaction.events.length >= MAX_INTERACTION_EVENTS && !evictHover(interaction.events)) {
+    interaction.dropped += 1;
+    return;
+  }
+  interaction.events.push({
+    type: "keydown",
+    t: Math.round(performance.now() - state.startedAt),
+    target: "page",
+    isTrusted: event.isTrusted,
+    keyClass: "tab",
+    repeat: false
+  });
+}
+
+// Over the cap, drop the oldest hover, so a flood of hovers never fills the buffer. Focus stays, because
+// the focus check reads it, and no chain check needs a hover. Any other event would leave a hole, so with
+// no hover to drop this returns false and the new event is dropped and counted instead.
 function evictHover(events) {
-  const index = events.findIndex((event) => HOVER_TYPES.has(event.type));
+  const index = events.findIndex((event) => EVICTABLE_TYPES.has(event.type));
   if (index === -1) return false;
   events.splice(index, 1);
   return true;
@@ -160,9 +186,13 @@ function evictHover(events) {
 export function discardSubmitAttempt(state) {
   const events = state.interaction.events;
   let start = events.length;
-  while (start > 0 && events[start - 1].target === "submit") {
+  while (start > 0) {
+    const event = events[start - 1];
+    const onSubmit = event.target === "submit";
+    // Pressing Submit blurs the phrase field in the middle of the press. That blur belongs to the attempt.
+    if (!onSubmit && event.type !== "blur") break;
     start -= 1;
-    if (events[start].type === "pointerdown" || events[start].type === "keydown") break;
+    if (onSubmit && (event.type === "pointerdown" || event.type === "keydown")) break;
   }
   events.splice(start);
 }

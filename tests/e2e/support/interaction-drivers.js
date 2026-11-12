@@ -132,6 +132,35 @@ export async function cdpClick(page, cdp, selector, clickCount = 1) {
   ]);
 }
 
+// Programmatic focus on the phrase field, with no click on it. Start and Submit are real clicks.
+export function createScriptFocusDriver(page) {
+  return {
+    async run() {
+      await page.locator(TARGET.start).click();
+      await page.locator(TARGET.phrase).focus();
+      await page.keyboard.type(PHRASE);
+      await page.locator(TARGET.submit).click();
+    }
+  };
+}
+
+// Real clicks to focus the field, then trusted typing while the page reports itself hidden and unfocused.
+export function createHiddenInputDriver(page) {
+  return {
+    async run() {
+      await page.locator(TARGET.start).click();
+      await page.locator(TARGET.phrase).click();
+      await page.evaluate(() => {
+        Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+        Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+        document.hasFocus = () => false;
+      });
+      await page.keyboard.type(PHRASE);
+      await page.locator(TARGET.submit).click();
+    }
+  };
+}
+
 // C: synthetic. Script-made clicks, key events and a value assignment.
 export function createSyntheticDriver(page) {
   return {

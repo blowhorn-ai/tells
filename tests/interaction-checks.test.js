@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { evaluateInteractionChecks, INTERACTION_CHECK_IDS, INTERACTION_THRESHOLDS } from "../public/interaction-checks.js";
 
 // A minimal report in the schema shape. Each test changes only the numbers it is about.
-function report({ completed = true, durationMs = 2000, clicks = [click()], typing = {}, fullscreen = false } = {}) {
+function report({ completed = true, durationMs = 2000, clicks = [click()], typing = {}, fullscreen = false, focus = {}, visibility = {} } = {}) {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     task: { phraseLength: 14, completed, durationMs: completed ? durationMs : null, fullscreen },
     click: { clicks },
     typing: {
@@ -18,6 +18,8 @@ function report({ completed = true, durationMs = 2000, clicks = [click()], typin
       dwellMs: { n: 14, mean: 90, median: 90, stdDev: 20, cv: 0.22, min: 60 },
       ...typing
     },
+    focus: { phraseFocused: true, inputWhileUnfocused: 0, untrustedFocus: 0, focusWithoutGesture: 0, blurOutOfOrder: 0, ...focus },
+    visibility: { trustedInput: 20, trustedWhileHidden: 0, trustedWithoutFocus: 0, ...visibility },
     checks: []
   };
 }
@@ -46,7 +48,7 @@ function status(rep, id) {
 
 describe("interaction check thresholds", () => {
   it("is the single source of thresholds and check ids, in report order", () => {
-    expect(INTERACTION_CHECK_IDS).toHaveLength(13);
+    expect(INTERACTION_CHECK_IDS).toHaveLength(15);
     expect(INTERACTION_THRESHOLDS.centrePassPx).toBe(1);
     expect(evaluateInteractionChecks(report()).map((check) => check.id)).toEqual(INTERACTION_CHECK_IDS);
   });
@@ -169,6 +171,30 @@ describe("interaction check thresholds", () => {
     [500, "fail"]
   ])("int_task_speed: Start to Submit in %d ms is %s", (durationMs, expected) => {
     expect(status(report({ durationMs }), "int_task_speed")).toBe(expected);
+  });
+
+  it("int_focus: a focused phrase passes, and script focus, early input, a missing focus or a blur out of order warns and never fails", () => {
+    expect(INTERACTION_THRESHOLDS.focusUntrustedPass).toBe(0);
+    expect(INTERACTION_THRESHOLDS.focusWithoutGesturePass).toBe(0);
+    expect(INTERACTION_THRESHOLDS.focusInputUnfocusedPass).toBe(0);
+    expect(INTERACTION_THRESHOLDS.focusBlurOutOfOrderPass).toBe(0);
+    expect(status(report(), "int_focus")).toBe("pass");
+    expect(status(report({ focus: { untrustedFocus: 1 } }), "int_focus")).toBe("warn");
+    expect(status(report({ focus: { focusWithoutGesture: 1 } }), "int_focus")).toBe("warn");
+    expect(status(report({ focus: { inputWhileUnfocused: 1 } }), "int_focus")).toBe("warn");
+    expect(status(report({ focus: { blurOutOfOrder: 1 } }), "int_focus")).toBe("warn");
+    expect(status(report({ focus: { phraseFocused: false } }), "int_focus")).toBe("warn");
+    expect(status(report({ focus: { phraseFocused: false, inputWhileUnfocused: 4, untrustedFocus: 2, focusWithoutGesture: 2, blurOutOfOrder: 2 } }), "int_focus")).toBe("warn");
+  });
+
+  it("int_visibility: trusted input on a visible focused tab passes; hidden or unfocused input warns and never fails", () => {
+    expect(INTERACTION_THRESHOLDS.visibilityHiddenPass).toBe(0);
+    expect(INTERACTION_THRESHOLDS.visibilityUnfocusedPass).toBe(0);
+    expect(status(report(), "int_visibility")).toBe("pass");
+    expect(status(report({ visibility: { trustedWhileHidden: 1 } }), "int_visibility")).toBe("warn");
+    expect(status(report({ visibility: { trustedWithoutFocus: 1 } }), "int_visibility")).toBe("warn");
+    expect(status(report({ visibility: { trustedWhileHidden: 9, trustedWithoutFocus: 9 } }), "int_visibility")).toBe("warn");
+    expect(status(report({ visibility: { trustedInput: 0, trustedWhileHidden: 0, trustedWithoutFocus: 0 } }), "int_visibility")).toBe("na");
   });
 
   it("int_dwell: paste with no key holds is not applicable, while no holds from typed keys still fails", () => {

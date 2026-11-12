@@ -3,9 +3,11 @@ import { INTERACTION_CHECK_IDS } from "../../public/interaction-checks.js";
 import {
   cdpClick,
   createCdpDriver,
+  createHiddenInputDriver,
   createHumanDriver,
   createKeyboardDriver,
   createPlaywrightDriver,
+  createScriptFocusDriver,
   createSyntheticDriver,
   openDrill,
   TARGET
@@ -80,7 +82,27 @@ test("human-like input is not failed by any raw check", async ({ page }) => {
   test.setTimeout(90_000);
   const row = await runFamily(page, "a human-like", () => createHumanDriver(page).run());
   expect(row.interaction.task.completed).toBe(true);
+  expect(row.interaction.schemaVersion).toBe(3);
   expect(failed(row)).toEqual([]);
+  expect(row.statuses.int_focus).toBe("pass");
+  expect(row.statuses.int_visibility).toBe("pass");
+  expectWorkerAgreesWithPage(row);
+});
+
+test("programmatic focus with no click warns the focus check and does not fail it", async ({ page }) => {
+  const row = await runFamily(page, "script focus", () => createScriptFocusDriver(page).run());
+  expect(row.interaction.task.completed).toBe(true);
+  expect(row.interaction.focus.focusWithoutGesture).toBeGreaterThan(0);
+  expect(row.statuses.int_focus).toBe("warn");
+  expectWorkerAgreesWithPage(row);
+});
+
+test("trusted input while the tab is hidden and unfocused warns and does not fail", async ({ page }) => {
+  const row = await runFamily(page, "hidden tab", () => createHiddenInputDriver(page).run());
+  expect(row.interaction.task.completed).toBe(true);
+  expect(row.interaction.visibility.trustedWhileHidden).toBeGreaterThan(0);
+  expect(row.interaction.visibility.trustedWithoutFocus).toBeGreaterThan(0);
+  expect(row.statuses.int_visibility).toBe("warn");
   expectWorkerAgreesWithPage(row);
 });
 

@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="What the Interaction check in Blowhorn Tells reads, its 13 checks and their provisional thresholds, and why websites care about how input arrives.">
+  <meta name="description" content="What the Interaction check in Blowhorn Tells reads, its 15 checks and their provisional thresholds, and why websites care about how input arrives.">
   <meta name="theme-color" content="#1E2117" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
   <title>Interaction check: what it is and how to read it | Blowhorn Tells</title>
@@ -68,6 +68,8 @@
           <li>How far the pointer travelled in the second before each press, counted in pixels, never as a path</li>
           <li>How long each press and each key was held, and the gaps between keys</li>
           <li>Whether the text arrived as typed keys, as pasted text, or as text with no key presses</li>
+          <li>Whether the phrase field was focused by the click or the key before typing, and whether blur and focus arrived in order around Start and Submit</li>
+          <li>Whether trusted input arrived while the tab was hidden or the page was unfocused</li>
           <li>How long the task took from Start to Submit</li>
       </ul>
       <p>Only counts, timings and the order of events leave the page. The key values, the typed text
@@ -75,7 +77,7 @@
     </section>
 
     <section class="panel card card-plain">
-      <h2>The 13 checks</h2>
+      <h2>The 15 checks</h2>
       <p>Each check reads one of the facts above. Thresholds are provisional until 20 or more human
           runs have set them, so treat the bands as a starting point, not a standard.</p>
       <div class="table-wrap">
@@ -97,6 +99,8 @@
             <tr><th scope="row"><code>int_key_rhythm</code></th><td>Variation and mean of the intervals between keys (8 or more)</td><td>Variation 0.15 or more, mean 60 ms or more</td><td>Variation 0.05 to 0.15</td><td>Variation under 0.05, or mean under 30 ms</td></tr>
             <tr><th scope="row"><code>int_dwell</code></th><td>How long each key was held. Not judged when the text was pasted and no key was pressed</td><td>Median 40 to 250 ms, with spread</td><td>All identical</td><td>All 0 ms, or none recorded (not after a paste)</td></tr>
             <tr><th scope="row"><code>int_task_speed</code></th><td>Start click to Submit click</td><td>1.5 s or more</td><td>0.8 to 1.5 s</td><td>Under 0.8 s</td></tr>
+            <tr><th scope="row"><code>int_focus</code></th><td>Phrase field focused by the click or key before typing, and blur and focus in order around Start and Submit</td><td>Focused first, in order</td><td>Focus with no click or key, input before focus, blur out of order, or Submit with the field never focused</td><td>-</td></tr>
+            <tr><th scope="row"><code>int_visibility</code></th><td>Trusted input while the tab is visible and the page has focus</td><td>Visible and focused</td><td>Any trusted input while hidden or unfocused</td><td>-</td></tr>
           </tbody>
         </table>
       </div>
@@ -106,12 +110,12 @@
       <h2>How to read your result</h2>
       <ul>
           <li><strong>Pass:</strong> The task was completed and the evidence matched a person.</li>
-          <li><strong>Warning:</strong> The task was completed and something was unusual, such as a paste, a missing key event, or screen coordinates equal to window coordinates on every click.</li>
+          <li><strong>Warning:</strong> The task was completed and something was unusual, such as a paste, a missing key event, screen coordinates equal to window coordinates on every click, focus that did not come from the click or key, or input while the tab was hidden.</li>
           <li><strong>Not available:</strong> The task was not taken, or no check could be judged on it. That is a neutral result; the verdict is computed without it.</li>
       </ul>
       <p><strong>Provisional.</strong> While the thresholds are uncalibrated, the check is warn-only. A failing
           check is still shown in its results and adds a medium note to the verdict, but it never
-          makes a verdict bot on its own, and the most the 13 checks can take off the score is 39 points.
+          makes a verdict bot on its own, and the most the 15 checks can take off the score is 37 points.
           A warning adds a low note. When calibration on 20 or more human runs is done, a fail becomes a
           high note; that change is one line in the Worker.</p>
       <p>Script-made input is scored once. The <a href="/checks/remote-control-tells/">Remote-control tells</a>

@@ -374,7 +374,9 @@ export const REASON_PLAIN = {
   int_value_source: "Text was set by script, not typed",
   int_key_rhythm: "Typing rhythm looks scripted",
   int_dwell: "Key hold times look scripted",
-  int_task_speed: "Test finished unnaturally fast"
+  int_task_speed: "Test finished unnaturally fast",
+  int_focus: "Focus or blur looked unusual",
+  int_visibility: "Input arrived while the tab was hidden or unfocused"
 };
 
 // The plain headline for a scored reason, as the Top signals list shows it: the phrase above, or the

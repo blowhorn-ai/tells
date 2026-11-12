@@ -44,12 +44,23 @@ describe("interaction report validator", () => {
     expect(validateInteractionReport(negative)).toBe(false);
 
     expect(validateInteractionReport({ ...validReport(), schemaVersion: 1 })).toBe(false);
+    expect(validateInteractionReport({ ...validReport(), schemaVersion: 2 })).toBe(false);
   });
 
   it("rejects a typing.counts with its fields missing, so a tampered report cannot turn the trusted check into a pass", () => {
     const emptyCounts = validReport();
     emptyCounts.typing.counts = {};
     expect(validateInteractionReport(emptyCounts)).toBe(false);
+  });
+
+  it("rejects a raw focus or visibility event list, so only the counts leave the page", () => {
+    const withFocusEvents = validReport();
+    withFocusEvents.focus.events = [{ type: "focus", t: 1 }];
+    expect(validateInteractionReport(withFocusEvents)).toBe(false);
+
+    const withVisibilityEvents = validReport();
+    withVisibilityEvents.visibility.events = [{ hidden: true, t: 1 }];
+    expect(validateInteractionReport(withVisibilityEvents)).toBe(false);
   });
 
   it("rejects a missing section", () => {
