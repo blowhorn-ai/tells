@@ -4,6 +4,10 @@
 
 It runs at [tells.blowhorn.ai](https://tells.blowhorn.ai) as one Cloudflare Worker with static assets. Use it to test your own browser, or point your Playwright, Puppeteer, Selenium or extension script at it and read the JSON result.
 
+## Harness read path
+
+Read the finished report from the page. The Raw report panel, `pre#jsonOut` with `[data-tells-report="raw"]`, is the full `/api/report` response as JSON text. Parse that text. The interaction report is at `/client/interaction`, and its check statuses are the ones the server derived. It is complete when `/client/interaction/task/completed` is true. Before Submit, that element holds `No report yet.` or a report whose interaction is not completed.
+
 ## What it checks
 
 **Server.** Request headers (sensitive values redacted), client IP and Cloudflare connection data (country, colo, ASN, protocol, RTT), proxy-style headers (`Forwarded`, `Via`, `X-Forwarded-*` and similar), a datacenter ASN heuristic, optional IP intelligence for proxy, VPN, Tor and datacenter addresses, and managed bot fields when enabled.

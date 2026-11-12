@@ -58,13 +58,18 @@
       <h3>1. Drive the page</h3>
       <p>Load <a href="https://tells.blowhorn.ai/">tells.blowhorn.ai</a> in the browser you are
         evaluating. The inspection runs on load. The run is finished when the raw report JSON
-        appears in the page; read it straight out of the DOM:</p>
+        appears in <code>[data-tells-report="raw"]</code> (<code>pre#jsonOut</code>, the Raw report
+        panel). That text is the full <code>/api/report</code> response. The interaction report is
+        at <code>/client/interaction</code>, with check statuses derived on the server. It is
+        complete when <code>/client/interaction/task/completed</code> is true. Before Submit, that
+        element holds <code>No report yet.</code> or a report whose interaction is not completed.</p>
       <pre><code>// Playwright / Puppeteer, same shape
 await page.goto("https://tells.blowhorn.ai/");
 await page.waitForFunction(() =&gt;
-  document.querySelector("#jsonOut")?.textContent.trim().startsWith("{"));
+  document.querySelector('[data-tells-report="raw"]')?.textContent.trim().startsWith("{"));
 const report = JSON.parse(
-  await page.$eval("#jsonOut", (el) =&gt; el.textContent));</code></pre>
+  await page.$eval('[data-tells-report="raw"]', (el) =&gt; el.textContent));
+// report.client.interaction is complete when report.client.interaction.task.completed is true</code></pre>
       <p>The verdict card (<code>#verdictCard</code>) shows the same verdict in words, with the score out of 100.
         The Copy JSON and Download JSON buttons hand over the identical object.</p>
       <h3>2. Call the API</h3>

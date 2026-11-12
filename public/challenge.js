@@ -56,7 +56,8 @@ export function setupChallenge(state, renderRuntime, runChecks) {
     }
 
     state.interaction.report = report;
-    // Kept for external harnesses (an external Rust runner reads it). Remove it only once a replacement read path exists.
+    // Deprecated. Harnesses must read [data-tells-report="raw"] -> /client/interaction.
+    // Removed once blowhorn-ai/blowhorn engine/rust/detector-run moves to that path (tells#21).
     window.__tellsInteraction = report;
     field.disabled = true;
     submitButton.disabled = true;
