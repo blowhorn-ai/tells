@@ -339,14 +339,36 @@ describe("verdict card fields", () => {
       ].map((key) => [key, flagged])),
       fingerprints: { webgl: { supported: false }, canvas: { error: "blocked" } },
       network: { webrtc: { publicIpLeakDifferentFromServer: true }, ping: { medianMs: 900, memorySamples: [heap] } },
-      behavior: { score: 0.1 },
+      behavior: {
+        score: 0.1,
+        summary: {
+          elapsedMs: 5000,
+          eventCounts: {},
+          pointerMoveSamples: 0,
+          pointerDistance: 0,
+          pointerSpeedStdDev: 0,
+          rafStdDev: 0
+        },
+        recentEvents: []
+      },
       interaction: { version: "not-a-report" }
     });
     // The other side of each either/or branch above.
     score({ userAgent: "x", cloudflareBotManagement: { available: true, score: 40, verifiedBot: false } }, {
       browser: { userAgent: "Mozilla/5.0 Chrome/120.0", plugins: [{}], pluginsConsistency: { itemOverflowMatchesFirst: false }, permissions: { notifications: { state: "prompt", permission: "denied" } } },
       tells: { webdriver: { getterNative: false }, input: { trustedWithoutFocus: 1 } },
-      behavior: { score: 0.4 }
+      behavior: {
+        score: 0.4,
+        summary: {
+          elapsedMs: 5000,
+          eventCounts: { keydown: 1 },
+          pointerMoveSamples: 0,
+          pointerDistance: 0,
+          pointerSpeedStdDev: 0,
+          rafStdDev: 0
+        },
+        recentEvents: [{ type: "keydown", t: 620 }]
+      }
     });
     score({ userAgent: "x", cloudflareBotManagement: { available: true, score: 99, verifiedBot: true } }, {});
     // Every interaction check the Worker derives is scored under its own id when it fails.

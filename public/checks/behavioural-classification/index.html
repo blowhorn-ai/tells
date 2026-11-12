@@ -52,11 +52,12 @@
 
     <section class="panel card card-field">
       <h2>What this check is</h2>
-      <p>While the page is open it watches its own interaction stream: pointer
-          movement, clicks, key presses, scrolling, focus changes, and their timing. From
-          that stream it computes a behaviour score between 0 and 1. Human input has a
-          texture: acceleration, hesitation, overshoot, correction. Scripted input has a
-          different one: straight lines, even timing, inhuman completeness, or none at all.</p>
+      <p>While the page is open it records its own interaction stream: pointer
+          movement, clicks, key presses, scrolling, focus changes, and their timing. The
+          Worker derives a behaviour score between 0 and 1 from that record. When the page's
+          own score differs, the report keeps it beside the derived score as a cross-check.
+          Human input has a texture: acceleration, hesitation, overshoot, correction. Scripted
+          input has a different one: straight lines, even timing, inhuman completeness, or none at all.</p>
     </section>
 
     <section class="panel card card-stamp">
@@ -70,7 +71,7 @@
     <section class="panel card card-plain">
       <h2>How to read your result</h2>
       <ul>
-          <li><strong>Fail:</strong> A behaviour score under 0.25: the interaction stream reads as scripted or absent in a way real use does not.</li>
+          <li><strong>Fail:</strong> A behaviour score under 0.25, or evidence that is missing or does not hold together.</li>
           <li><strong>Warning:</strong> A score from 0.25 to 0.5: borderline texture.</li>
           <li><strong>Pass:</strong> A score of 0.5 or better. A short, still visit scores lower than an active one; that is the measure working, not an accusation.</li>
       </ul>

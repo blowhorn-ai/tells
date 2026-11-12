@@ -1,3 +1,4 @@
+import { BEHAVIOR_RECENT_EVENT_LIMIT, scoreBehavior, summarizePointerMoves } from "./behavior-score.js";
 import { collectPerformanceMemorySnapshot, buildPerformanceMemorySurface } from "./performance-memory.js";
 import { standardDeviation } from "./utils.js";
 
@@ -274,50 +275,24 @@ export function setupSensorProbe(state) {
 }
 
 export function computeBehavior(state, now = performance.now()) {
-  const elapsedMs = now - state.startedAt;
-  const counts = {};
-  for (const event of state.events) counts[event.type] = (counts[event.type] || 0) + 1;
+  const elapsedMs = Math.round(now - state.startedAt);
+  const eventCounts = {};
+  for (const event of state.events) eventCounts[event.type] = (eventCounts[event.type] || 0) + 1;
 
-  const pointerMoves = state.events.filter((event) => event.type === "pointermove");
-  let pointerDistance = 0;
-  const speeds = [];
-  for (let i = 1; i < pointerMoves.length; i += 1) {
-    const prev = pointerMoves[i - 1];
-    const curr = pointerMoves[i];
-    const distance = Math.hypot(curr.x - prev.x, curr.y - prev.y);
-    pointerDistance += distance;
-    const dt = Math.max(1, curr.t - prev.t);
-    speeds.push(distance / dt);
-  }
-
-  const rafStdDev = standardDeviation(state.rafSamples.slice(-120));
-  const speedStdDev = standardDeviation(speeds);
-  let score = 0.12;
-  if (elapsedMs > 1200) score += 0.08;
-  if (elapsedMs > 4000) score += 0.08;
-  if (pointerMoves.length >= 5) score += 0.17;
-  if (pointerDistance > 120) score += 0.16;
-  if (speedStdDev > 0.02) score += 0.10;
-  if ((counts.click || 0) > 0 || (counts.pointerdown || 0) > 0) score += 0.10;
-  if ((counts.keydown || 0) > 0) score += 0.08;
-  if ((counts.scroll || 0) > 0) score += 0.08;
-  if (rafStdDev > 0.3) score += 0.05;
-  if (interactionCompleted(state)) score += 0.16;
-  if (elapsedMs > 3500 && Object.keys(counts).length === 0) score = 0.03;
-
-  score = Math.max(0, Math.min(1, score));
+  const pointer = summarizePointerMoves(state.events);
+  const summary = {
+    elapsedMs,
+    eventCounts,
+    pointerMoveSamples: pointer.pointerMoveSamples,
+    pointerDistance: pointer.pointerDistance,
+    pointerSpeedStdDev: pointer.pointerSpeedStdDev,
+    rafStdDev: Math.round(standardDeviation(state.rafSamples.slice(-120)) * 1000) / 1000
+  };
   return {
-    score: Math.round(score * 1000) / 1000,
+    score: scoreBehavior({ ...summary, interactionCompleted: interactionCompleted(state) }),
     checkpointsMs: BEHAVIOR_CHECKPOINTS_MS,
-    summary: {
-      elapsedMs: Math.round(elapsedMs),
-      eventCounts: counts,
-      pointerMoveSamples: pointerMoves.length,
-      pointerDistance: Math.round(pointerDistance),
-      pointerSpeedStdDev: Math.round(speedStdDev * 10000) / 10000,
-      rafStdDev: Math.round(rafStdDev * 1000) / 1000
-    },
-    recentEvents: state.events.slice(-30)
+    summary,
+    recentEvents: state.events.slice(-BEHAVIOR_RECENT_EVENT_LIMIT)
   };
 }
 
