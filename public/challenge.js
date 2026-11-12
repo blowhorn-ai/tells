@@ -56,9 +56,6 @@ export function setupChallenge(state, renderRuntime, runChecks) {
     }
 
     state.interaction.report = report;
-    // Deprecated. Harnesses must read [data-tells-report="raw"] -> /client/interaction.
-    // Removed once blowhorn-ai/blowhorn engine/rust/detector-run moves to that path (tells#21).
-    window.__tellsInteraction = report;
     field.disabled = true;
     submitButton.disabled = true;
     renderRuntime(state);

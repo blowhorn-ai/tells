@@ -74,6 +74,8 @@ async function runFamily(page, family, drive) {
   // Once the verdict is in, the status line says the test is done rather than still checking.
   await expect(page.locator("#challengeStatus")).toHaveText("Interaction test complete. The verdict is shown above.");
   const interaction = await readCompletedInteraction(page);
+  // Harnesses read the raw report. The old page global is gone.
+  expect(await page.evaluate(() => window.__tellsInteraction)).toBeUndefined();
   const statuses = Object.fromEntries((interaction?.checks || []).map((check) => [check.id, check.status]));
   const reasons = (body.verdict?.reasons || []).filter((reason) => reason.id.startsWith("int_"));
   // The Worker scores script-made input once, as synthetic_input, so int_trusted adds no reason of its own then.
