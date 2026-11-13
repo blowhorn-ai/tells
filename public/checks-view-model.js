@@ -347,6 +347,8 @@ export const REASON_PLAIN = {
   plugin_item_overflow: "Plugin list behaves unusually",
   webgl_missing: "No WebGL graphics support",
   canvas_error: "Canvas drawing blocked or failed",
+  fingerprint_context_inconsistent: "Fingerprint differs between the page and a worker",
+  fingerprint_randomized: "Fingerprint randomized, as privacy browsers do",
   webrtc_public_ip_mismatch: "WebRTC address differs from the request",
   browser_edge_latency_gap: "Timing disagrees with the connection",
   performance_memory_anomaly: "Heap readings look impossible",

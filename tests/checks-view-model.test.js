@@ -337,7 +337,14 @@ describe("verdict card fields", () => {
         "userAgentMismatch", "acceptLanguageMismatch", "clientHintPlatformMismatch", "clientHintMobileMismatch",
         "clientHintHighEntropyMismatch", "userAgentDataHighEntropyMismatch", "mobileTouchMismatch"
       ].map((key) => [key, flagged])),
-      fingerprints: { webgl: { supported: false }, canvas: { error: "blocked" } },
+      fingerprints: {
+        webgl: { supported: false },
+        canvas: { error: "blocked" },
+        stability: {
+          canvas: { reads: 3, distinct: 1, workerMatch: false, iframeMatch: true, controlAltered: false, classification: "stable" },
+          audio: { reads: 3, distinct: 3, workerMatch: null, iframeMatch: false, controlAltered: null, classification: "stable" }
+        }
+      },
       network: { webrtc: { publicIpLeakDifferentFromServer: true }, ping: { medianMs: 900, memorySamples: [heap] } },
       behavior: {
         score: 0.1,
