@@ -4,6 +4,7 @@ import { buildCheckRows } from "../public/checks-view-model.js";
 import { surface } from "../public/collect-stability.js";
 import { classifyStability, STABILITY_CLASSES, STABILITY_SURFACES } from "../public/fingerprint-stability.js";
 import { validateFingerprintStability } from "../public/generated/validate-fingerprint-stability.js";
+import { redactReport } from "../scripts/capture-fixture.mjs";
 import { buildValidatorSource, VALIDATORS } from "../scripts/build-validators.mjs";
 import { deriveFingerprintStability, scoreReport } from "../src/report-verdict.js";
 import worker from "../src/worker.js";
@@ -125,5 +126,18 @@ describe("Fingerprint protection row", () => {
 
   it("is not available when the page did not measure stability", () => {
     expect(row(undefined)).toMatchObject({ status: "na", summary: "Fingerprint protection not measured" });
+  });
+});
+
+describe("capture redaction", () => {
+  it("keeps fingerprints.stability, which holds only counts and classes", () => {
+    const stability = { canvas: entry({ classification: "randomized_session", controlAltered: true }) };
+    const { fixture, redaction } = redactReport({
+      server: { headers: chrome.headers },
+      client: { fingerprints: { canvas: { supported: true, hash: "c4nv4s" }, stability } }
+    });
+
+    expect(fixture.client.fingerprints).toEqual({ canvas: { supported: true }, stability });
+    expect(redaction.removedFields).toEqual(["client.fingerprints.canvas.hash"]);
   });
 });
