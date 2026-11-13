@@ -1,6 +1,6 @@
-// Precompiles the schemas the page and the Worker validate against into standalone ES modules,
-// one per schema. Workers forbid new Function, so Ajv cannot compile at runtime there. The page
-// and the Worker both import the same generated file, so there is exactly one validator per schema.
+// Precompiles each schema in VALIDATORS into a standalone ES module.
+// Workers forbid new Function, so Ajv cannot compile at runtime there. The page and the
+// Worker both import the same generated file, so there is exactly one validator per schema.
 //
 // Run with `pnpm build:validators`. The output is committed, and a test checks that
 // regenerating it gives byte-identical output.

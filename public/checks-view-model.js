@@ -134,8 +134,7 @@ const CHECKS = [
   {
     name: "Fingerprint protection",
     group: "fingerprint",
-    // Info-only: randomized or blocked surfaces are described here but never warn. Only a surface
-    // that reads one value on the page and another in a worker or iframe is scored.
+    // Randomized or blocked surfaces are info-only. Only a context mismatch warns.
     pass: ({ client }) => stabilityPassSummary(client.fingerprints.stability),
     slug: "fingerprint-protection",
     reasons: ["fingerprint_context_inconsistent"],
@@ -466,8 +465,6 @@ function shortRenderer(renderer) {
 
 const STABILITY_WORDS = { canvas: "canvas", webgl: "WebGL", audio: "audio", fonts: "fonts", voices: "voices" };
 
-// Plain sentence for the Fingerprint protection row: which surfaces are randomized or blocked, or
-// that every surface read steadily.
 function stabilityPassSummary(stability) {
   const named = (classes) => STABILITY_SURFACES.filter((surface) => classes.includes(stability[surface]?.classification)).map((surface) => STABILITY_WORDS[surface]);
   const randomized = named(["randomized_session", "randomized_per_read"]);

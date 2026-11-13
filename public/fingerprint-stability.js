@@ -1,7 +1,4 @@
-// Fingerprint stability (#44): does each fingerprint surface read the same every time and in every
-// context? Shared by the page, which measures it (public/collect-stability.js), and the Worker, which
-// re-derives the classes from the counts so the page cannot choose its own result. Only counts,
-// booleans and the class leave the page, never the values that were read.
+// Shared by the page and the Worker. The Worker re-derives each class so the page cannot pick its own.
 
 export const STABILITY_SURFACES = Object.freeze(["canvas", "webgl", "audio", "fonts", "voices"]);
 
@@ -16,11 +13,8 @@ export const STABILITY_CLASSES = Object.freeze([
   "context_inconsistent"
 ]);
 
-// The order matters. Values that change on every read will differ between contexts too, so
-// per-read randomization comes before a context mismatch. Steady main-thread reads that disagree
-// with the worker or iframe are the main-thread-only spoof. Steady reads everywhere with an altered
-// control render (a solid-colour canvas, a constant audio buffer) are session-seeded noise, like
-// Brave's farbling.
+// Per-read noise also differs between contexts, so it is checked first. Steady reads with an
+// altered control are session-seeded noise, like Brave's farbling.
 export function classifyStability({ distinct, workerMatch, iframeMatch, controlAltered }) {
   if (distinct === 0) return "blocked";
   if (distinct > 1) return "randomized_per_read";

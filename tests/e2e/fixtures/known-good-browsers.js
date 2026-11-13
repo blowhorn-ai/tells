@@ -217,8 +217,7 @@ export const automationControlReport = {
       chromeMajor: 126,
       input: { count: 4, untrusted: 2, trustedWhileHidden: 2, trustedWithoutFocus: 2 }
     },
-    // A canvas spoof injected into the main thread only: the page reads one value every time, and
-    // the worker and iframe, which the spoof never reached, read another (#44).
+    // A main-thread-only canvas spoof: steady on the page, different in the worker and iframe.
     fingerprints: {
       ...knownGoodBrowserReports[0].client.fingerprints,
       stability: {

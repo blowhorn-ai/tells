@@ -1,8 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { stubSharedCards } from "./support/cards.js";
 
-// Fingerprint stability (#44) in a real browser. Each test loads the page, waits for the first
-// /api/report response, and reads the server-derived classes and reasons from it.
+// Each test reads the server-derived classes and reasons from the first /api/report response.
 test.beforeEach(async ({ page }) => stubSharedCards(page));
 
 async function firstReport(page) {
@@ -13,8 +12,7 @@ async function firstReport(page) {
 
 const reasonIds = (body) => body.verdict.reasons.map((reason) => reason.id);
 
-// Adds the same small change to every canvas read in the frames it runs in, the way a fingerprint
-// spoofer would. topOnly leaves iframes alone; the worker is never touched by an init script.
+// Nudges every canvas read like a spoofer. topOnly skips iframes, and init scripts never reach the worker.
 function spoofCanvas({ topOnly, perRead }) {
   if (topOnly && window !== window.top) return;
   const original = CanvasRenderingContext2D.prototype.getImageData;
@@ -57,7 +55,7 @@ test("canvas noise that changes on every read is randomized_per_read and costs n
 });
 
 test("the same noise in every context is randomized_session", async ({ page }) => {
-  // No worker here, so the page and the iframe are the only contexts, and both add the same noise.
+  // Without a worker, the page and the iframe both add the same noise.
   await page.addInitScript(() => { delete window.Worker; });
   await page.addInitScript(spoofCanvas, { topOnly: false, perRead: false });
   const body = await firstReport(page);

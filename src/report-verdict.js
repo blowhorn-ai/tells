@@ -428,9 +428,8 @@ export function withValidInteraction(client, interaction = deriveInteraction(cli
   return { ...client, interaction };
 }
 
-// Validates client.fingerprints.stability and re-derives each surface's classification from its
-// counts, so the client cannot choose its own class. Returns undefined when there is none, null when
-// it does not match the schema or a count is impossible, and otherwise the derived surfaces.
+// Re-derives each class so the client cannot pick its own. Returns undefined when there is no
+// report, and null when it fails the schema or a count is impossible.
 export function deriveFingerprintStability(stability) {
   if (stability === undefined || stability === null) return undefined;
   if (!validateFingerprintStability(stability)) return null;
@@ -442,9 +441,8 @@ export function deriveFingerprintStability(stability) {
   return derived;
 }
 
-// fingerprint_context_inconsistent is scored: the main thread reads one value and a worker or iframe
-// reads another, which is what a main-thread-only spoof looks like. Randomization is registered at 0
-// points (open question Q2), because privacy browsers and anti-detect browsers both randomize.
+// A context mismatch looks like a main-thread-only spoof. Randomization scores 0 because privacy
+// browsers and anti-detect browsers both randomize.
 export function scoreFingerprintStability(stability, penalize) {
   if (!stability) return;
   const surfacesWith = (classes) => Object.keys(stability).filter((surface) => classes.includes(stability[surface].classification));
@@ -458,8 +456,7 @@ export function scoreFingerprintStability(stability, penalize) {
   }
 }
 
-// The client copy that goes back in the response carries the server-derived classes. A stability
-// report that failed validation is removed.
+// The response echoes the server-derived classes and drops a report that failed validation.
 export function withDerivedFingerprintStability(client, stability = deriveFingerprintStability(client?.fingerprints?.stability)) {
   if (!client?.fingerprints || client.fingerprints.stability === undefined) return client;
   const { stability: _sent, ...fingerprints } = client.fingerprints;

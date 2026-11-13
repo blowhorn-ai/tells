@@ -73,8 +73,7 @@ test.describe("captured known-good corpus", () => {
     });
   }
 
-  // #44 release gate: a privacy browser randomizes or blocks at least one surface and never
-  // disagrees with itself between contexts.
+  // Release gate: a privacy browser randomizes or blocks a surface but never disagrees between contexts.
   for (const capture of capturedHumanReports.filter((report) => report.privacySettings.length && report.client.fingerprints?.stability)) {
     test(`${capture.name} shows its fingerprint protection`, async ({ request }) => {
       const body = await postReport(request, capture.headers, capture.client);

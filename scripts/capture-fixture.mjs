@@ -82,8 +82,7 @@ export function redactClient(original) {
 
   if (isObject(client.fingerprints)) {
     for (const surface of Object.keys(client.fingerprints).sort()) {
-      // stability holds only counts, booleans and classes (schemas/fingerprint-stability.schema.json),
-      // and the corpus gate for #44 reads it, so it stays as it is.
+      // stability is only counts and classes, and the corpus gate reads it.
       if (surface === "stability") continue;
       const values = client.fingerprints[surface];
       if (!isObject(values)) {

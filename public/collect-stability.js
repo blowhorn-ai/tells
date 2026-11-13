@@ -1,13 +1,8 @@
 import { classifyStability, STABILITY_READS } from "./fingerprint-stability.js";
 import { promiseWithTimeout, sleep } from "./utils.js";
 
-// Measures client.fingerprints.stability (#44). Each surface is read STABILITY_READS times on the main
-// thread and once in a same-origin iframe. Canvas and WebGL are also read once in a Web Worker. The
-// values are compared here and never leave the page: only counts, booleans and the class do.
-//
-// The canvas read is its own control: a small solid-colour fill, which an honest browser returns
-// exactly, on every read and in every context. Audio has a separate control, a constant signal.
-// Both are fixed and cheap, so a mismatch can only mean the values were changed on the way out.
+// Values are compared here and never leave the page. The solid canvas fill and the constant audio
+// signal are controls an honest browser returns exactly, so a mismatch means the values were changed.
 
 const CONTROL_SIZE = 32;
 const CONTROL_FILL = "rgb(255, 102, 0)";
@@ -45,8 +40,7 @@ export async function collectFingerprintStability() {
   }
 }
 
-// Main-thread reads one after another, so a value that changes on every read shows up, then one
-// iframe read. A read that throws counts as failed (null).
+// Sequential reads, so per-read noise shows up. A read that throws counts as failed (null).
 async function measure(readMain, readFrame) {
   const values = [];
   for (let i = 0; i < STABILITY_READS; i += 1) values.push(await safeRead(readMain));
@@ -62,7 +56,7 @@ async function safeRead(read) {
   }
 }
 
-// workerValue is undefined for surfaces with no worker read, and null when the worker could not read.
+// workerValue is undefined when the surface has no worker read, null when the worker failed.
 export function surface({ values, frame }, workerValue, controlAltered) {
   const present = values.filter((value) => value != null);
   const distinct = new Set(present).size;
@@ -210,8 +204,7 @@ function fontsValue(win) {
   })).join("|");
 }
 
-// Voices often load after the page does. Wait for them first, so a list that is still filling in
-// does not look like a value that changes on every read.
+// Voices load late. Waiting stops a list that is still filling in from looking randomized.
 async function voicesReady(win) {
   const synth = win.speechSynthesis;
   if (!synth?.getVoices || synth.getVoices().length) return;
