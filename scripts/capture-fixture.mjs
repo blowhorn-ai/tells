@@ -1,14 +1,8 @@
-// Turns a report saved with Download JSON on the site into a known-good corpus fixture: the
-// request headers and client readings POST /api/report needs to score it again, with
-// identifying data removed, plus a manifest entry that says what was captured and redacted.
+// Redacts a report saved with Download JSON into a corpus fixture and a manifest entry.
 //
 //   node scripts/capture-fixture.mjs report.json --id brave-1-73-macos-15 --kind human \
 //     --browser Brave --browser-version 1.73 --os macOS --os-version 15.1 \
 //     --privacy "Shields: block fingerprinting (strict)"
-//
-// Writes tests/e2e/fixtures/captures/<id>.json and adds or replaces its entry in
-// tests/e2e/fixtures/captures/manifest.json. tests/capture-fixture.test.js checks the
-// manifest against schemas/fixture-manifest.schema.json and that every fixture is redacted.
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -22,14 +16,10 @@ export const MANIFEST_SCHEMA_PATH = "schemas/fixture-manifest.schema.json";
 export const CAPTURES_DIR = "tests/e2e/fixtures/captures";
 export const MANIFEST_PATH = `${CAPTURES_DIR}/manifest.json`;
 
-// Headers a browser sends on its own. Everything else is dropped and named in the manifest:
-// Cloudflare and proxy headers carry the client IP and location, and host, origin, referer,
-// cookies and the body headers describe this request, not the browser.
+// Headers a browser sends on its own. The rest carry the client IP and location or describe this request.
 const KEPT_HEADER = /^(user-agent|accept|accept-language|accept-encoding|dnt|sec-gpc|priority|cache-control|pragma|upgrade-insecure-requests|sec-ch-[a-z0-9-]+|sec-fetch-[a-z0-9-]+)$/;
 
-// Keys enrichClientConsistency (src/report-verdict.js) adds to client.consistency. The Worker
-// derives the header ones again from the kept headers. timezoneMismatch comes from the IP
-// lookup, which a fixture no longer has.
+// Added by the Worker, which derives them again. timezoneMismatch needs the IP, which a fixture lacks.
 const SERVER_CONSISTENCY_KEYS = [
   "userAgentMismatch",
   "acceptLanguageMismatch",
@@ -41,13 +31,11 @@ const SERVER_CONSISTENCY_KEYS = [
   "timezoneMismatch"
 ];
 
-// The WebRTC result keeps only whether it ran. Candidates, addresses and the Worker's
-// comparison with the request IP all go.
+// WebRTC keeps only whether it ran. Candidates and addresses identify the visitor.
 const KEPT_WEBRTC_KEYS = ["supported", "error"];
 
-// Each fingerprint surface (canvas, webgl, audio, fonts, ...) keeps only whether it worked.
-// The verdict reads webgl.supported and the canvas error. Hashes, GPU vendor and renderer,
-// font lists and the rest are stable per-device identifiers that score nothing.
+// Each surface keeps only whether it worked, which is all the verdict reads. Hashes, GPU
+// strings and font lists are per-device identifiers.
 const KEPT_FINGERPRINT_KEYS = ["supported", "error", "hashError"];
 
 export function redactReport(report) {

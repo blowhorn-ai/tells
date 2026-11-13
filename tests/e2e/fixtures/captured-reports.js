@@ -1,8 +1,6 @@
 import { readFileSync } from "node:fs";
 
-// The captured corpus: real reports redacted by scripts/capture-fixture.mjs and listed in
-// captures/manifest.json. Each entry carries its manifest fields plus the headers and client
-// readings to post again.
+// Real reports redacted by scripts/capture-fixture.mjs and listed in captures/manifest.json.
 const capturesDir = new URL("./captures/", import.meta.url);
 
 export const capturedManifest = JSON.parse(readFileSync(new URL("manifest.json", capturesDir), "utf8"));
