@@ -16,6 +16,8 @@ Read the finished report from the page. The Raw report panel, `pre#jsonOut` with
 
 **Cross-context consistency.** The same facts read in the window, a Web Worker, a Service Worker and a same-origin iframe must agree, and the request headers must agree with what the browser reports.
 
+**Fingerprint protection.** Canvas, WebGL, audio, fonts and voices are each read three times in the window and once in a same-origin iframe, and canvas and WebGL once more in a Web Worker. A solid-colour canvas and a constant audio signal act as controls. Each surface is classed as stable, randomized per session, randomized per read, blocked, or inconsistent between contexts, and only those counts and classes are sent. The Worker re-derives the class. A surface that reads differently in the window than in a worker or iframe scores `fingerprint_context_inconsistent`. Randomization is reported as `fingerprint_randomized` at 0 points, because privacy browsers randomize too.
+
 **Behavior.** A transparent score from pointer, key, scroll, focus and frame timing. The Worker derives that score from the evidence the page posts and uses the derived score in the verdict. An optional interaction test — press Start, type one fixed phrase, press Submit (Enter or Space on either button also works) — adds 15 checks of event order, click geometry, press length, key rhythm, focus and blur, and tab visibility, which stay warn-only until calibrated.
 
 ## API for scripts

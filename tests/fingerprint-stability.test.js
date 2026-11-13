@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { buildCheckRows } from "../public/checks-view-model.js";
 import { surface } from "../public/collect-stability.js";
 import { classifyStability, STABILITY_CLASSES, STABILITY_SURFACES } from "../public/fingerprint-stability.js";
 import { validateFingerprintStability } from "../public/generated/validate-fingerprint-stability.js";
@@ -101,5 +102,28 @@ describe("server stability scoring", () => {
     expect(reasonIds(spoofed.verdict)).toContain("fingerprint_context_inconsistent");
     expect(invalid.client.fingerprints).not.toHaveProperty("stability");
     expect(reasonIds(invalid.verdict)).not.toContain("fingerprint_context_inconsistent");
+  });
+});
+
+describe("Fingerprint protection row", () => {
+  const row = (stability, reasons = []) => buildCheckRows({ verdict: { reasons }, client: { fingerprints: { stability } } })
+    .find((item) => item.name === "Fingerprint protection");
+
+  it("passes and names randomized or blocked surfaces, since they are info-only", () => {
+    const result = row({ canvas: entry({ classification: "randomized_session" }), audio: entry({ classification: "randomized_per_read" }), voices: entry({ classification: "blocked" }) });
+    expect(result).toMatchObject({ status: "pass", summary: "Canvas and audio randomized, voices blocked", slug: "fingerprint-protection" });
+  });
+
+  it("says the reads are steady when nothing is randomized", () => {
+    expect(row({ canvas: entry(), webgl: entry() }).summary).toBe("Fingerprint reads are steady");
+  });
+
+  it("warns on a context mismatch", () => {
+    const result = row({ canvas: entry({ classification: "context_inconsistent" }) }, [{ id: "fingerprint_context_inconsistent", severity: "medium", message: "m" }]);
+    expect(result).toMatchObject({ status: "warn", summary: "Fingerprint differs between the page and a worker" });
+  });
+
+  it("is not available when the page did not measure stability", () => {
+    expect(row(undefined)).toMatchObject({ status: "na", summary: "Fingerprint protection not measured" });
   });
 });

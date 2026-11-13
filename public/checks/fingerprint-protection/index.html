@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="What the Fingerprint protection check in Blowhorn Tells reads, how its Pass and Warning results are decided, and how it tells privacy protection apart from spoofing.">
+  <meta name="theme-color" content="#1E2117" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+  <title>Fingerprint protection check: what it is and how to read it | Blowhorn Tells</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="/assets/fonts/BricolageGrotesque-Variable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/InstrumentSans-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="https://blowhorn.ai/assets/brand/cards.css">
+  <link rel="stylesheet" href="/styles.css">
+  <!-- Google Analytics: the same GA4 property as blowhorn.ai. No consent banner on this tool. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-2ZLYGVE3HN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-2ZLYGVE3HN');
+  </script>
+</head>
+
+<body>
+  <div class="ambient-grid" aria-hidden="true"></div>
+  <a class="skip-link" href="#main">Skip to the content</a>
+  <header class="site-header">
+    <div class="wrap header-bar">
+      <a class="brand" href="https://blowhorn.ai/" aria-label="Blowhorn home">
+        <img class="logo-dark" src="/assets/brand/blowhorn-lockup-horizontal-on-dark.svg" alt="Blowhorn" width="176" height="44">
+        <img class="logo-light" src="/assets/brand/blowhorn-lockup-horizontal.svg" alt="" width="176" height="44">
+      </a>
+      <a class="product-name" href="/" aria-label="Tells, the bot detection test">Tells</a>
+      <nav class="site-nav" aria-label="Blowhorn">
+        <ul>
+          <li><a href="https://blowhorn.ai/">What is Blowhorn</a></li>
+          <li><a href="https://blowhorn.ai/pricing/">Pricing</a></li>
+          <li><a href="https://blowhorn.ai/docs/">Docs</a></li>
+          <li><a href="https://github.com/layer5io/blowhorn-tells" target="_blank" rel="noopener noreferrer">Source</a></li>
+        </ul>
+      </nav>
+      <a class="button-primary site-cta" href="https://blowhorn.ai/download/">Get Blowhorn</a>
+    </div>
+  </header>
+
+  <main id="main" class="wrap doc-page">
+    <p class="eyebrow"><a href="/checks/">Check guide</a> · In the browser</p>
+    <h1>Fingerprint protection</h1>
+    <p class="lede">Read the same fingerprint several times, in several places. Does it hold still?</p>
+
+    <section class="panel card card-field">
+      <h2>What this check is</h2>
+      <p>Privacy browsers change their fingerprint on purpose. Brave adds a little noise to
+          canvas and audio readings for each site and session, Firefox can randomize or block
+          them, and Safari adds noise in private windows. Anti-detection tools change the
+          fingerprint too, but often only in the visible page. This check tells the two apart:
+          it reads each fingerprint more than once, compares the page with a Web Worker and an
+          iframe, and draws a control whose result is known in advance.</p>
+    </section>
+
+    <section class="panel card card-stamp">
+      <h2>What Tells reads</h2>
+      <ul>
+          <li>Canvas: a small solid-colour square, read three times in the page, once in an iframe and once in a Web Worker. An unprotected browser returns exactly the colour that was drawn.</li>
+          <li>WebGL: the graphics vendor, renderer and limits, read the same way.</li>
+          <li>Audio: a short rendered sound, three times in the page and once in an iframe, plus a constant signal that should come back unchanged.</li>
+          <li>Fonts and voices: the installed fonts and speech voices, three times in the page and once in an iframe. A worker cannot read these.</li>
+          <li>Only counts and yes or no answers leave the page, never the values that were read.</li>
+      </ul>
+    </section>
+
+    <section class="panel card card-plain">
+      <h2>How to read your result</h2>
+      <ul>
+          <li><strong>Warning:</strong> A surface reads one value in the page and another in a worker or iframe. That is what changing only the visible page looks like. A real browser does not disagree with itself.</li>
+          <li><strong>Pass:</strong> Every surface read steadily, or some were randomized or blocked. Randomized and blocked surfaces are named in the result but cost nothing, because privacy browsers and anti-detection browsers both randomize.</li>
+      </ul>
+    </section>
+
+    <section class="panel card card-paper">
+      <h2>Why it matters</h2>
+      <p>Randomizing a fingerprint is a privacy feature, and treating it as a bot signal would
+          punish the people who choose privacy browsers. A change that covers only the main page
+          is different, because the worker and the iframe still tell the truth. Telling the two
+          apart keeps privacy-minded visitors in the clear while still catching patched pages.</p>
+    </section>
+
+    <section class="panel card card-dispatch">
+      <h2>In your report</h2>
+      <p>Find it in the <a href="/#checks">Checks performed</a> list on the tool page. Each surface's
+        class (<code>stable</code>, <code>randomized_session</code>, <code>randomized_per_read</code>,
+        <code>blocked</code> or <code>context_inconsistent</code>) is in the report JSON under
+        <code>client.fingerprints.stability</code>, any finding is under <code>verdict.reasons</code>,
+        and the agent guide explains <a href="/agents/">how to read them programmatically</a>.</p>
+      <h3>Related checks</h3>
+      <ul>
+          <li><a href="/checks/browser-fingerprint/">Browser fingerprint</a></li>
+          <li><a href="/checks/worker-consistency/">Worker consistency</a></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-panel card card-plain">
+        <div class="footer-top">
+          <div class="footer-brand">
+            <a class="footer-logo" href="https://blowhorn.ai/" aria-label="Blowhorn home">
+              <img class="logo-dark" src="/assets/brand/blowhorn-lockup-horizontal-on-dark.svg" alt="Blowhorn" width="200" height="50">
+              <img class="logo-light" src="/assets/brand/blowhorn-lockup-horizontal.svg" alt="" width="200" height="50">
+            </a>
+            <p class="footer-tagline">Your voice, at full volume.</p>
+            <p class="footer-about">Tells is a free check from the Blowhorn team. It shows what websites can read about your browser.</p>
+          </div>
+        </div>
+        <nav class="footer-cols" aria-label="Footer">
+          <div class="footer-col">
+            <h2 class="footer-title">Tells</h2>
+            <ul>
+              <li><a href="/#checks">Checks performed</a></li>
+              <li><a href="/checks/">What each check means</a></li>
+              <li><a href="/agents/">For AI agents</a></li>
+              <li><a href="https://github.com/layer5io/blowhorn-tells">Source code</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h2 class="footer-title">Blowhorn</h2>
+            <ul>
+              <li><a href="https://blowhorn.ai/">What is Blowhorn</a></li>
+              <li><a href="https://blowhorn.ai/download/">Download</a></li>
+              <li><a href="https://blowhorn.ai/pricing/">Pricing</a></li>
+              <li><a href="https://blowhorn.ai/docs/">Docs</a></li>
+            </ul>
+          </div>
+        </nav>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Layer5, Inc.</span>
+      </div>
+    </div>
+  </footer>
+</body>
+
+</html>
