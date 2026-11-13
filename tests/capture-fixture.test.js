@@ -119,12 +119,56 @@ describe("capture fixture redaction", () => {
     const { fixture } = redactReport(report);
     const again = await postReport(fixture.headers, fixture.client);
 
-    for (const key of ["automation", "tells", "workers", "fingerprints", "behavior", "interaction"]) {
+    for (const key of ["automation", "tells", "workers", "behavior", "interaction"]) {
       expect(fixture.client[key], key).toEqual(report.client[key]);
     }
+    expect(fixture.client.fingerprints.webgl.supported).toBe(true);
     expect(again.verdict.classification).toBe(report.verdict.classification);
     expect(again.verdict.score).toBe(report.verdict.score);
     expect(reasonIds(again)).toEqual(reasonIds(report));
+  });
+
+  it("keeps only whether each fingerprint surface worked, not its values", async () => {
+    const report = await postReport(chrome.headers, {
+      ...chrome.client,
+      fingerprints: {
+        canvas: { supported: true, hash: "c4nv4s", dataUrlLength: 5120 },
+        webgl: { supported: true, vendor: "Google Inc. (Apple)", renderer: "ANGLE (Apple, Apple M2, OpenGL 4.1)", extensions: ["EXT_a"], fingerprintHash: "w3bgl" },
+        audio: { supported: true, hash: "4ud10", sampleRate: 44100 },
+        fonts: { supported: true, detected: ["Menlo"], count: 1, hash: "f0nts" },
+        webgpu: { supported: true, adapter: { vendor: "apple", architecture: "metal-3" } },
+        cssMedia: { supported: false, error: "blocked" }
+      }
+    });
+    const { fixture, redaction } = redactReport(report);
+    const text = JSON.stringify(fixture);
+
+    expect(fixture.client.fingerprints).toEqual({
+      canvas: { supported: true },
+      webgl: { supported: true },
+      audio: { supported: true },
+      fonts: { supported: true },
+      webgpu: { supported: true },
+      cssMedia: { supported: false, error: "blocked" }
+    });
+    for (const value of ["c4nv4s", "Apple M2", "4ud10", "Menlo", "f0nts", "metal-3", "w3bgl"]) {
+      expect(text).not.toContain(value);
+    }
+    expect(redaction.removedFields).toEqual(expect.arrayContaining([
+      "client.fingerprints.canvas.hash",
+      "client.fingerprints.webgl.vendor",
+      "client.fingerprints.webgl.renderer",
+      "client.fingerprints.audio.hash"
+    ]));
+  });
+
+  it("keeps the canvas error the verdict reads", () => {
+    const { fixture } = redactReport({
+      server: { headers: chrome.headers },
+      client: { fingerprints: { canvas: { supported: false, hashError: "SecurityError" }, webgl: { supported: false } } }
+    });
+
+    expect(fixture.client.fingerprints).toEqual({ canvas: { supported: false, hashError: "SecurityError" }, webgl: { supported: false } });
   });
 
   it("drops consistency keys the Worker adds, including the IP-based timezone check", () => {

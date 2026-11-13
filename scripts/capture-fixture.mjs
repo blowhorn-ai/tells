@@ -45,6 +45,11 @@ const SERVER_CONSISTENCY_KEYS = [
 // comparison with the request IP all go.
 const KEPT_WEBRTC_KEYS = ["supported", "error"];
 
+// Each fingerprint surface (canvas, webgl, audio, fonts, ...) keeps only whether it worked.
+// The verdict reads webgl.supported and the canvas error. Hashes, GPU vendor and renderer,
+// font lists and the rest are stable per-device identifiers that score nothing.
+const KEPT_FINGERPRINT_KEYS = ["supported", "error", "hashError"];
+
 export function redactReport(report) {
   if (!report || typeof report !== "object" || !isObject(report.client) || !isObject(report.server?.headers)) {
     throw new Error("Expected a report saved with Download JSON: an object with client and server.headers.");
@@ -84,6 +89,19 @@ export function redactClient(original) {
   if (isObject(webrtc)) {
     for (const key of Object.keys(webrtc).sort()) {
       if (!KEPT_WEBRTC_KEYS.includes(key)) remove(webrtc, key, `client.network.webrtc.${key}`);
+    }
+  }
+
+  if (isObject(client.fingerprints)) {
+    for (const surface of Object.keys(client.fingerprints).sort()) {
+      const values = client.fingerprints[surface];
+      if (!isObject(values)) {
+        remove(client.fingerprints, surface, `client.fingerprints.${surface}`);
+        continue;
+      }
+      for (const key of Object.keys(values).sort()) {
+        if (!KEPT_FINGERPRINT_KEYS.includes(key)) remove(values, key, `client.fingerprints.${surface}.${key}`);
+      }
     }
   }
 
