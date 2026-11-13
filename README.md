@@ -64,6 +64,20 @@ The card variants (`card-paper`, `card-dispatch`, `card-stamp`, `card-field`, `c
 
 No two cards that sit next to each other share a variant. The result page's detail panels sit in a grid, one column and two above 900px. Their variants follow the markup order on a four-step cycle (stamp, field, plain, dispatch); adding or moving a panel means re-dealing the cycle from that point. `tests/e2e/card-neighbours.spec.js` checks the rendered layout of `/` and the `/checks/` and `/agents/` pages at 320, 820 and 1280px in both themes. The e2e test server (`tests/e2e/support/worker-server.js`) serves `dir/` as `dir/index.html`, as Workers Assets does. Doc pages with five sections or fewer use each variant once. No card, panel, row, callout or quote draws a stripe on one edge; `tests/e2e/no-edge-stripes.spec.js` checks the computed styles of every card, panel, row, callout, quote and item element on `/`, `/agents/`, `/checks/` and every `/checks/<name>/` page, in both themes.
 
+## Known-good corpus
+
+`tests/e2e/fixtures/captures/` holds real reports from privacy-hardened browsers and stock automation tools. `tests/e2e/known-good-browsers.spec.js` posts each one to `/api/report` again. A `human` capture must stay `likely_human` with none of `disallowedKnownGoodReasonIds`, and an `automation` capture must come out `likely_bot`. The synthetic reports in `tests/e2e/fixtures/known-good-browsers.js` stay alongside them.
+
+To add one, run the checks in that browser, press Download JSON, then:
+
+```bash
+node scripts/capture-fixture.mjs report.json --id brave-1-73-macos-15 --kind human \
+  --browser Brave --browser-version 1.73 --os macOS --os-version 15.1 \
+  --privacy "Shields: block fingerprinting (strict)"
+```
+
+The script keeps only the headers a browser sends by itself and drops the rest, such as Cloudflare and proxy headers, cookies, origin and referer. From the readings it removes the history length, the extension probe results, the WebRTC candidates and addresses along with the Worker's comparison to the request IP, the page referrer, and the query and fragment of the page URL. It also removes the consistency keys the Worker adds. The Worker derives the header-based ones again from the kept headers, but the IP-based timezone check is lost. The script writes `captures/<id>.json` and an entry in `captures/manifest.json` (`schemas/fixture-manifest.schema.json`) that names everything it dropped. `tests/capture-fixture.test.js` fails if a fixture is missing from the manifest or still holds anything the script would remove.
+
 ## Deploy
 
 `master` deploys through `.github/workflows/deploy.yml` when the repository has `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets. Without them the workflow says so and deploys nothing. The Worker serves the `tells.blowhorn.ai` custom domain (`wrangler.json`).

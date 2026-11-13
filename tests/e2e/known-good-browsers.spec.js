@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { capturedAutomationReports, capturedHumanReports } from "./fixtures/captured-reports.js";
 import {
   automationControlReport,
   disallowedKnownGoodReasonIds,
@@ -58,6 +59,26 @@ test.describe("known-good browser detection", () => {
       "input_while_hidden"
     ]));
   });
+});
+
+// Real, redacted reports from tests/e2e/fixtures/captures (scripts/capture-fixture.mjs).
+test.describe("captured known-good corpus", () => {
+  for (const capture of capturedHumanReports) {
+    test(`${capture.name} stays likely_human`, async ({ request }) => {
+      const body = await postReport(request, capture.headers, capture.client);
+
+      expect(body.verdict.classification).toBe("likely_human");
+      expect(reasonIds(body).filter((id) => disallowedKnownGoodReasonIds.includes(id))).toEqual([]);
+    });
+  }
+
+  for (const capture of capturedAutomationReports) {
+    test(`${capture.name} is caught`, async ({ request }) => {
+      const body = await postReport(request, capture.headers, capture.client);
+
+      expect(body.verdict.classification).toBe("likely_bot");
+    });
+  }
 });
 
 async function postReport(request, headers, client) {

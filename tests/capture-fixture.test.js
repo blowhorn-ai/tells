@@ -1,3 +1,4 @@
+import { readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   addToManifest,
@@ -6,6 +7,7 @@ import {
   redactReport
 } from "../scripts/capture-fixture.mjs";
 import worker from "../src/worker.js";
+import { capturedManifest, capturedReports } from "./e2e/fixtures/captured-reports.js";
 import { knownGoodBrowserReports } from "./e2e/fixtures/known-good-browsers.js";
 import { createWorkerEnv } from "./worker-env.js";
 
@@ -180,5 +182,27 @@ describe("fixture manifest", () => {
 
     expect(manifest.fixtures.map((entry) => entry.id)).toEqual(["brave-1-73-macos-15", "tor-14-macos-15"]);
     expect(manifest.fixtures[0].browser.version).toBe("1.74");
+  });
+});
+
+describe("known-good corpus", () => {
+  it("matches the manifest schema", () => {
+    expect(validateManifest(capturedManifest), JSON.stringify(validateManifest.errors)).toBe(true);
+  });
+
+  it("lists every capture file once, named after its id", () => {
+    const files = readdirSync(new URL("./e2e/fixtures/captures/", import.meta.url)).filter((name) => name !== "manifest.json");
+    const ids = capturedManifest.fixtures.map((entry) => entry.id);
+
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const entry of capturedManifest.fixtures) expect(entry.file).toBe(`${entry.id}.json`);
+    expect(files.sort()).toEqual(capturedManifest.fixtures.map((entry) => entry.file).sort());
+  });
+
+  it("holds only redacted fixtures", () => {
+    for (const capture of capturedReports) {
+      const { redaction } = redactReport({ server: { headers: capture.headers }, client: capture.client });
+      expect(redaction, capture.id).toEqual({ droppedHeaders: [], removedFields: [] });
+    }
   });
 });
