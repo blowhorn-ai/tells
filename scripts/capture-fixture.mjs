@@ -106,8 +106,7 @@ export function redactClient(original) {
   }
 
   if (isObject(client.page)) {
-    if (client.page.referrer == null) delete client.page.referrer;
-    else remove(client.page, "referrer", "client.page.referrer");
+    remove(client.page, "referrer", "client.page.referrer");
     if (typeof client.page.url === "string") {
       const url = new URL(client.page.url);
       const bare = `${url.origin}${url.pathname}`;

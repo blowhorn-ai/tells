@@ -171,6 +171,16 @@ describe("capture fixture redaction", () => {
     expect(fixture.client.fingerprints).toEqual({ canvas: { supported: false, hashError: "SecurityError" }, webgl: { supported: false } });
   });
 
+  it("records a null referrer as removed", () => {
+    const { fixture, redaction } = redactReport({
+      server: { headers: chrome.headers },
+      client: { page: { url: "https://tells.blowhorn.ai/", referrer: null } }
+    });
+
+    expect(fixture.client.page).toEqual({ url: "https://tells.blowhorn.ai/" });
+    expect(redaction.removedFields).toEqual(["client.page.referrer"]);
+  });
+
   it("drops consistency keys the Worker adds, including the IP-based timezone check", () => {
     const { fixture, redaction } = redactReport({
       server: { headers: chrome.headers },
