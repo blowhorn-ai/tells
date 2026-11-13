@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tells.blowhorn.ai/schemas/v1/fingerprint-stability.schema.json",
+  "title": "Fingerprint stability",
+  "description": "client.fingerprints.stability: for each fingerprint surface, how many main-thread reads were taken, how many distinct values came back, whether the Web Worker and iframe reads matched, and whether a fixed control render came back altered. Counts and booleans only, never the values read. The Worker re-derives classification from these numbers.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "canvas": { "$ref": "#/$defs/surface" },
+    "webgl": { "$ref": "#/$defs/surface" },
+    "audio": { "$ref": "#/$defs/surface" },
+    "fonts": { "$ref": "#/$defs/surface" },
+    "voices": { "$ref": "#/$defs/surface" }
+  },
+  "$defs": {
+    "surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reads", "distinct", "workerMatch", "iframeMatch", "controlAltered", "classification"],
+      "properties": {
+        "reads": { "description": "Main-thread reads taken.", "type": "integer", "minimum": 1, "maximum": 10 },
+        "distinct": { "description": "Distinct values among the main-thread reads. 0 when every read failed or came back empty.", "type": "integer", "minimum": 0, "maximum": 10 },
+        "workerMatch": { "description": "Whether a Web Worker read matched the main thread. null when the surface has no worker read or the worker could not read it.", "type": ["boolean", "null"] },
+        "iframeMatch": { "description": "Whether a same-origin iframe read matched the main thread. null when the iframe could not read it.", "type": ["boolean", "null"] },
+        "controlAltered": { "description": "Whether a fixed control render (solid-colour canvas, constant audio buffer) came back different from the known result. null for surfaces without a control.", "type": ["boolean", "null"] },
+        "classification": { "enum": ["stable", "randomized_session", "randomized_per_read", "blocked", "context_inconsistent"] }
+      }
+    }
+  }
+}
