@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { surface } from "../public/collect-stability.js";
 import { classifyStability, STABILITY_CLASSES, STABILITY_SURFACES } from "../public/fingerprint-stability.js";
 import { validateFingerprintStability } from "../public/generated/validate-fingerprint-stability.js";
 import { buildValidatorSource, VALIDATORS } from "../scripts/build-validators.mjs";
@@ -35,6 +36,14 @@ describe("stability classification", () => {
   it("covers the surfaces and classes the schema allows", () => {
     expect(Object.keys(schema.properties)).toEqual([...STABILITY_SURFACES]);
     expect(schema.$defs.surface.properties.classification.enum).toEqual([...STABILITY_CLASSES]);
+  });
+
+  it("builds an entry from the reads the page compares", () => {
+    expect(surface({ values: ["a", "a", "a"], frame: "a" }, "a", false)).toEqual(entry());
+    expect(surface({ values: ["a", "a", "a"], frame: "a" }, "b", false).classification).toBe("context_inconsistent");
+    expect(surface({ values: ["a", "b", "c"], frame: "d" }, "e", false)).toMatchObject({ distinct: 3, workerMatch: null, iframeMatch: null, classification: "randomized_per_read" });
+    expect(surface({ values: [null, null, null], frame: null }, undefined, null)).toMatchObject({ distinct: 0, classification: "blocked" });
+    expect(surface({ values: ["a", "a", "a"], frame: null }, undefined, null)).toMatchObject({ workerMatch: null, iframeMatch: null, classification: "stable" });
   });
 });
 
