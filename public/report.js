@@ -1,5 +1,6 @@
 import { collectAutomationSignals, collectBrowser } from "./collect-browser.js";
 import { collectFingerprints } from "./collect-fingerprints.js";
+import { collectFingerprintStability } from "./collect-stability.js";
 import { buildInteractionReport, INTERACTION_PHRASE } from "./collect-interaction.js";
 import { collectNetwork } from "./collect-network.js";
 import { collectSurfaceIndicators } from "./collect-surfaces.js";
@@ -29,9 +30,10 @@ export async function runChecks(state) {
     const browser = await collectBrowser();
     const automation = collectAutomationSignals();
 
-    const [workers, fingerprints, network, surfaces] = await Promise.all([
+    const [workers, fingerprints, stability, network, surfaces] = await Promise.all([
       collectWorkers(),
       collectFingerprints(),
+      collectFingerprintStability().catch(() => null),
       collectNetwork(state),
       collectSurfaceIndicators(state)
     ]);
@@ -42,7 +44,7 @@ export async function runChecks(state) {
       automation,
       tells: collectTells(state),
       workers,
-      fingerprints,
+      fingerprints: stability ? { ...fingerprints, stability } : fingerprints,
       surfaces,
       network,
       consistency: computeConsistency(browser, workers, network),

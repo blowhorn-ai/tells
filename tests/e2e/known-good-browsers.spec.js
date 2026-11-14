@@ -56,7 +56,8 @@ test.describe("known-good browser detection", () => {
       "native_function_patched",
       "document_automation_keys",
       "synthetic_input",
-      "input_while_hidden"
+      "input_while_hidden",
+      "fingerprint_context_inconsistent"
     ]));
   });
 });
@@ -69,6 +70,18 @@ test.describe("captured known-good corpus", () => {
 
       expect(body.verdict.classification).toBe("likely_human");
       expect(reasonIds(body).filter((id) => disallowedKnownGoodReasonIds.includes(id))).toEqual([]);
+    });
+  }
+
+  // Release gate: a privacy browser randomizes or blocks a surface but never disagrees between contexts.
+  for (const capture of capturedHumanReports.filter((report) => report.privacySettings.length && report.client.fingerprints?.stability)) {
+    test(`${capture.name} shows its fingerprint protection`, async ({ request }) => {
+      const body = await postReport(request, capture.headers, capture.client);
+      const classes = Object.values(body.client.fingerprints.stability).map((surface) => surface.classification);
+
+      expect(classes).not.toContain("context_inconsistent");
+      expect(classes.some((value) => ["randomized_session", "randomized_per_read", "blocked"].includes(value))).toBe(true);
+      expect(body.verdict.classification).toBe("likely_human");
     });
   }
 

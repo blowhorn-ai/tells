@@ -1,7 +1,17 @@
 import { HttpError, json, JSON_HEADERS, readJsonBody, reportCorsHeaders } from "./http.js";
 import { API_RATE_LIMIT_RETRY_AFTER_SECONDS, checkApiRateLimit } from "./rate-limit.js";
 import { collectServer, collectServerBasics } from "./server-signals.js";
-import { deriveBehavior, deriveInteraction, detectionMatrix, enrichClientConsistency, scoreReport, withDerivedBehavior, withValidInteraction } from "./report-verdict.js";
+import {
+  deriveBehavior,
+  deriveFingerprintStability,
+  deriveInteraction,
+  detectionMatrix,
+  enrichClientConsistency,
+  scoreReport,
+  withDerivedBehavior,
+  withDerivedFingerprintStability,
+  withValidInteraction
+} from "./report-verdict.js";
 
 export default {
   async fetch(request, env, ctx) {
@@ -42,8 +52,12 @@ export default {
         const interaction = deriveInteraction(scored?.interaction);
         const interactionCompleted = interaction?.task?.completed === true;
         const behavior = deriveBehavior(scored?.behavior, interactionCompleted);
-        const verdict = scoreReport({ server, client: scored }, interaction, behavior);
-        const client = withDerivedBehavior(withValidInteraction(scored, interaction), interactionCompleted);
+        const stability = deriveFingerprintStability(scored?.fingerprints?.stability);
+        const verdict = scoreReport({ server, client: scored }, interaction, behavior, stability);
+        const client = withDerivedFingerprintStability(
+          withDerivedBehavior(withValidInteraction(scored, interaction), interactionCompleted),
+          stability
+        );
         const detections = detectionMatrix(server, client);
         return json({
           ok: true,

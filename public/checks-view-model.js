@@ -1,3 +1,4 @@
+import { STABILITY_SURFACES } from "./fingerprint-stability.js";
 import { INTERACTION_CHECK_IDS } from "./interaction-checks.js";
 import { buildWebRtcComparison, buildWorkerConsistencyRows } from "./report-view-model.js";
 
@@ -128,6 +129,20 @@ const CHECKS = [
         fp.fonts?.count != null ? plural(fp.fonts.count, "font") : null,
         fp.canvas?.hash ? "canvas hashed" : fp.canvas?.error ? "canvas failed" : null
       ]);
+    }
+  },
+  {
+    name: "Fingerprint protection",
+    group: "fingerprint",
+    // Randomized or blocked surfaces are info-only. Only a context mismatch warns.
+    pass: ({ client }) => stabilityPassSummary(client.fingerprints.stability),
+    slug: "fingerprint-protection",
+    reasons: ["fingerprint_context_inconsistent"],
+    available: ({ client }) => Boolean(client?.fingerprints?.stability),
+    unavailable: () => na("not measured", "Fingerprint protection not measured"),
+    observe: ({ client }) => {
+      const stability = client.fingerprints.stability;
+      return join(STABILITY_SURFACES.filter((surface) => stability[surface]).map((surface) => `${surface} ${stability[surface].classification.replaceAll("_", " ")}`));
     }
   },
   {
@@ -347,6 +362,8 @@ export const REASON_PLAIN = {
   plugin_item_overflow: "Plugin list behaves unusually",
   webgl_missing: "No WebGL graphics support",
   canvas_error: "Canvas drawing blocked or failed",
+  fingerprint_context_inconsistent: "Fingerprint differs between the page and a worker",
+  fingerprint_randomized: "Fingerprint randomized, as privacy browsers do",
   webrtc_public_ip_mismatch: "WebRTC address differs from the request",
   browser_edge_latency_gap: "Timing disagrees with the connection",
   performance_memory_anomaly: "Heap readings look impossible",
@@ -397,6 +414,7 @@ const CHECK_CONCERN = {
   "TLS fingerprint": "TLS fingerprint looks unusual",
   "Browser data": "Browser reports automation",
   "Browser fingerprint": "Graphics or canvas readings missing",
+  "Fingerprint protection": "Fingerprint reads disagree between contexts",
   "Fingerprint surfaces": "Browser surfaces look unusual",
   "Performance memory pings": "Heap readings look impossible",
   "Worker consistency": "Browser contexts disagree",
@@ -443,6 +461,25 @@ function shortRenderer(renderer) {
   const parts = inner.split(",").map((part) => part.trim()).filter(Boolean);
   const label = parts.length > 1 ? parts[1] : parts[0];
   return label.length > 40 ? `${label.slice(0, 39)}…` : label;
+}
+
+const STABILITY_WORDS = { canvas: "canvas", webgl: "WebGL", audio: "audio", fonts: "fonts", voices: "voices" };
+
+function stabilityPassSummary(stability) {
+  const named = (classes) => STABILITY_SURFACES.filter((surface) => classes.includes(stability[surface]?.classification)).map((surface) => STABILITY_WORDS[surface]);
+  const randomized = named(["randomized_session", "randomized_per_read"]);
+  const blocked = named(["blocked"]);
+  const parts = [
+    randomized.length ? `${listWords(randomized)} randomized` : null,
+    blocked.length ? `${listWords(blocked)} blocked` : null
+  ].filter(Boolean);
+  if (!parts.length) return "Fingerprint reads are steady";
+  const sentence = parts.join(", ");
+  return sentence.charAt(0).toUpperCase() + sentence.slice(1);
+}
+
+function listWords(words) {
+  return words.length < 2 ? words.join("") : `${words.slice(0, -1).join(", ")} and ${words[words.length - 1]}`;
 }
 
 function plural(count, noun) {

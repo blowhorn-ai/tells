@@ -1,4 +1,6 @@
 import { assessBehaviorEvidence } from "../public/behavior-score.js";
+import { classifyStability } from "../public/fingerprint-stability.js";
+import { validateFingerprintStability } from "../public/generated/validate-fingerprint-stability.js";
 import { validateInteractionReport } from "../public/generated/validate-interaction-report.js";
 import { evaluateInteractionChecks, INTERACTION_CHECK_IDS } from "../public/interaction-checks.js";
 import { getSuspiciousProxyHeaders } from "./proxy-headers.js";
@@ -69,6 +71,8 @@ export const REASON_IDS = Object.freeze([
   "plugin_item_overflow",
   "webgl_missing",
   "canvas_error",
+  "fingerprint_context_inconsistent",
+  "fingerprint_randomized",
   "webrtc_public_ip_mismatch",
   "browser_edge_latency_gap",
   "performance_memory_anomaly",
@@ -180,7 +184,8 @@ export function enrichClientConsistency(client, server) {
 export function scoreReport(
   report,
   interaction = deriveInteraction(report.client?.interaction),
-  behavior = deriveBehavior(report.client?.behavior, interaction?.task?.completed === true)
+  behavior = deriveBehavior(report.client?.behavior, interaction?.task?.completed === true),
+  stability = deriveFingerprintStability(report.client?.fingerprints?.stability)
 ) {
   const reasons = [];
   let score = 100;
@@ -315,6 +320,7 @@ export function scoreReport(
   if (canvasError) {
     penalize(8, "canvas_error", "low", "Canvas fingerprint failed or was blocked.", canvasError);
   }
+  scoreFingerprintStability(stability, penalize);
 
   if (network.webrtc?.publicIpLeakDifferentFromServer === true) {
     penalize(25, "webrtc_public_ip_mismatch", "high", "WebRTC exposed a public IP different from the HTTP request IP.", network.webrtc);
@@ -420,6 +426,41 @@ export function withValidInteraction(client, interaction = deriveInteraction(cli
     return rest;
   }
   return { ...client, interaction };
+}
+
+// Re-derives each class so the client cannot pick its own. Returns undefined when there is no
+// report, and null when it fails the schema or a count is impossible.
+export function deriveFingerprintStability(stability) {
+  if (stability === undefined || stability === null) return undefined;
+  if (!validateFingerprintStability(stability)) return null;
+  const derived = {};
+  for (const [surface, entry] of Object.entries(stability)) {
+    if (entry.distinct > entry.reads) return null;
+    derived[surface] = { ...entry, classification: classifyStability(entry) };
+  }
+  return derived;
+}
+
+// A context mismatch looks like a main-thread-only spoof. Randomization scores 0 because privacy
+// browsers and anti-detect browsers both randomize.
+export function scoreFingerprintStability(stability, penalize) {
+  if (!stability) return;
+  const surfacesWith = (classes) => Object.keys(stability).filter((surface) => classes.includes(stability[surface].classification));
+  const inconsistent = surfacesWith(["context_inconsistent"]);
+  if (inconsistent.length) {
+    penalize(15, "fingerprint_context_inconsistent", "medium", "A fingerprint surface reads one value on the main thread and another in a worker or iframe.", inconsistent);
+  }
+  const randomized = surfacesWith(["randomized_session", "randomized_per_read"]);
+  if (randomized.length) {
+    penalize(0, "fingerprint_randomized", "low", "A fingerprint surface is randomized, as privacy browsers do.", randomized);
+  }
+}
+
+// The response echoes the server-derived classes and drops a report that failed validation.
+export function withDerivedFingerprintStability(client, stability = deriveFingerprintStability(client?.fingerprints?.stability)) {
+  if (!client?.fingerprints || client.fingerprints.stability === undefined) return client;
+  const { stability: _sent, ...fingerprints } = client.fingerprints;
+  return { ...client, fingerprints: stability ? { ...fingerprints, stability } : fingerprints };
 }
 
 export function scoreRemoteControlTells(client, { isMobileBrowser = false } = {}, penalize) {
