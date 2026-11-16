@@ -4,10 +4,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="What the Fingerprint surfaces check in Blowhorn Tells reads, how its Pass, Warning and Fail results are decided, and why websites care about it.">
+  <meta name="description" content="What the Fingerprint surfaces check reads, how Pass, Warning, Fail and Not available are decided, and the points it can subtract. Catalog 1.0.1.">
   <meta name="theme-color" content="#1E2117" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
-  <title>Fingerprint surfaces check: what it is and how to read it | Blowhorn Tells</title>
+  <title>Fingerprint surfaces check | Blowhorn Tells</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preload" href="/assets/fonts/BricolageGrotesque-Variable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/InstrumentSans-Regular.woff2" as="font" type="font/woff2" crossorigin>
@@ -46,19 +46,10 @@
   </header>
 
   <main id="main" class="wrap doc-page">
-    <p class="eyebrow"><a href="/checks/">Check guide</a> · In the browser</p>
+    <p class="eyebrow"><a href="/checks/">Check guide</a> · Fingerprint consistency</p>
     <h1>Fingerprint surfaces</h1>
-    <p class="lede">The long tail: extensions, voices, media, sensors, policies.</p>
-
+    <p class="lede">Group: fingerprint. Since v0.2.0. Catalog 1.0.1.</p>
     <section class="panel card card-field">
-      <h2>What this check is</h2>
-      <p>Beyond the headline probes there is a long tail of small facts a page can
-          read: which well-known extensions answer, which speech voices are installed, what
-          media and DRM modules exist, what the sensors say, what the document policy allows,
-          whether DevTools is open. This check gathers that surface and shows its size.</p>
-    </section>
-
-    <section class="panel card card-stamp">
       <h2>What Tells reads</h2>
       <ul>
           <li>Extension probes against a set of known extensions</li>
@@ -67,43 +58,11 @@
       </ul>
     </section>
 
-    <section class="panel card card-plain">
-      <h2>How to read your result</h2>
-      <ul>
-          <li><strong>Pass / informational:</strong> The surfaces are reported, not scored on their own. Their weight is in combination: each is a small fact, and together they single out one browser in a crowd.</li>
-          <li><strong>Not available:</strong> The surface readings did not arrive.</li>
-      </ul>
-    </section>
-
-    <section class="panel card card-field">
-      <h2>Why it matters</h2>
-      <p>No serious site bans a browser for having an unusual voice list. Surfaces
-          matter the way details in a story matter: one oddity is nothing, six oddities in
-          the same direction are a pattern, and a pattern that matches a known automation
-          stack's defaults is a recognition. They are also the surfaces anti-fingerprinting
-          tools most often forget to normalize.</p>
-    </section>
     <section class="panel card card-stamp">
-      <h2>Where this matters most</h2>
-      <p>Across the platforms Blowhorn works with, rated in the
-        <a href="/checks/platforms/">platform guide</a> (H = matters a lot, M = contributes,
-        L = no public evidence; tags mark vendor-stated, reported, or inferred evidence):</p>
+      <h2>How the result is decided</h2>
       <ul>
-          <li><strong>LinkedIn (H):</strong> probes for 6,000+ installed extensions; the best-documented cell in this matrix <span class="muted">[Reported]</span></li>
-          <li><strong>X (M):</strong> no public equivalent is documented; standard surface checks assumed <span class="muted">[Inference]</span></li>
-      </ul>
-      <p>Everywhere else in the set this one rates Low.</p>
-    </section>
-    <section class="panel card card-dispatch">
-      <h2>In your report</h2>
-      <p>Find it in the <a href="/#checks">Checks performed</a> list on the tool page, with the detail in
-        the <a href="/#panel-surfaces">Surface indicators</a> section. The same findings appear in the
-        report JSON under <code>verdict.reasons</code>, and the agent guide explains
-        <a href="/agents/">how to read them programmatically</a>.</p>
-      <h3>Related checks</h3>
-      <ul>
-          <li><a href="/checks/browser-fingerprint/">Browser fingerprint</a></li>
-          <li><a href="/checks/browser-data/">Browser data</a></li>
+          <li><strong>Pass:</strong> The surfaces are reported, not scored on their own. Their weight is in combination: each is a small fact, and together they single out one browser in a crowd.</li>
+          <li><strong>Not available:</strong> The surface readings did not arrive.</li>
       </ul>
     </section>
   </main>
@@ -127,6 +86,7 @@
             <ul>
               <li><a href="/#checks">Checks performed</a></li>
               <li><a href="/checks/">What each check means</a></li>
+              <li><a href="/checks/changelog/">Check catalog changelog</a></li>
               <li><a href="/agents/">For AI agents</a></li>
               <li><a href="https://github.com/blowhorn-ai/tells">Source code</a></li>
             </ul>

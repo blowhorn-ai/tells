@@ -4,10 +4,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="What the TLS fingerprint check in Blowhorn Tells reads, how its Pass, Warning and Fail results are decided, and why websites care about it.">
+  <meta name="description" content="What the TLS fingerprint check reads, how Pass, Warning, Fail and Not available are decided, and the points it can subtract. Catalog 1.0.1.">
   <meta name="theme-color" content="#1E2117" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
-  <title>TLS fingerprint check: what it is and how to read it | Blowhorn Tells</title>
+  <title>TLS fingerprint check | Blowhorn Tells</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preload" href="/assets/fonts/BricolageGrotesque-Variable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/InstrumentSans-Regular.woff2" as="font" type="font/woff2" crossorigin>
@@ -46,20 +46,10 @@
   </header>
 
   <main id="main" class="wrap doc-page">
-    <p class="eyebrow"><a href="/checks/">Check guide</a> · On the wire</p>
+    <p class="eyebrow"><a href="/checks/">Check guide</a> · Fingerprint consistency</p>
     <h1>TLS fingerprint</h1>
-    <p class="lede">The fingerprint of the encrypted connection itself.</p>
-
+    <p class="lede">Group: fingerprint. Since v0.2.0. Catalog 1.0.1.</p>
     <section class="panel card card-field">
-      <h2>What this check is</h2>
-      <p>Before any HTTP is exchanged, the browser and the server negotiate an
-          encrypted connection, and the way a client opens that negotiation is characteristic
-          of the software doing it. Fingerprints of that handshake (JA3, and its successor
-          JA4) effectively name the TLS stack: this browser family, that HTTP library, some
-          other tool entirely.</p>
-    </section>
-
-    <section class="panel card card-stamp">
       <h2>What Tells reads</h2>
       <ul>
           <li>The TLS version of the connection</li>
@@ -67,44 +57,11 @@
       </ul>
     </section>
 
-    <section class="panel card card-plain">
-      <h2>How to read your result</h2>
-      <ul>
-          <li><strong>Pass / informational:</strong> Tells displays the fingerprint but does not score it: on its own it identifies a class of software, not a culprit.</li>
-          <li><strong>Not available:</strong> Cloudflare did not return a JA4 or JA3 fingerprint for this request, so the row says so rather than guessing.</li>
-      </ul>
-    </section>
-
-    <section class="panel card card-field">
-      <h2>Why it matters</h2>
-      <p>TLS fingerprints matter because they are so hard to argue with. A request
-          can claim any User-Agent it likes in a header, but if the handshake is the one a
-          Python HTTP library makes, the claim and the connection disagree, and sites with
-          bot management compare exactly that pair. Real browsers are consistent here
-          without trying, because the same engine makes both.</p>
-    </section>
     <section class="panel card card-stamp">
-      <h2>Where this matters most</h2>
-      <p>Across the platforms Blowhorn works with, rated in the
-        <a href="/checks/platforms/">platform guide</a> (H = matters a lot, M = contributes,
-        L = no public evidence; tags mark vendor-stated, reported, or inferred evidence):</p>
+      <h2>How the result is decided</h2>
       <ul>
-          <li><strong>LinkedIn (M):</strong> standard in anti-fraud stacks at this scale; not publicly documented for LinkedIn <span class="muted">[Inference]</span></li>
-          <li><strong>X (M):</strong> same reasoning; not publicly documented for X <span class="muted">[Inference]</span></li>
-          <li><strong>Reddit (M):</strong> edge blocking of non-browser clients is consistent with TLS and HTTP fingerprinting <span class="muted">[Inference]</span></li>
-      </ul>
-      <p>Everywhere else in the set this one rates Low.</p>
-    </section>
-    <section class="panel card card-dispatch">
-      <h2>In your report</h2>
-      <p>Find it in the <a href="/#checks">Checks performed</a> list on the tool page, with the detail in
-        the <a href="/#panel-server-ip">Server / IP</a> section. The same findings appear in the
-        report JSON under <code>verdict.reasons</code>, and the agent guide explains
-        <a href="/agents/">how to read them programmatically</a>.</p>
-      <h3>Related checks</h3>
-      <ul>
-          <li><a href="/checks/request-profile/">Request profile</a></li>
-          <li><a href="/checks/managed-bot-score/">Managed bot score</a></li>
+          <li><strong>Pass:</strong> Tells displays the fingerprint but does not score it: on its own it identifies a class of software, not a culprit.</li>
+          <li><strong>Not available:</strong> Cloudflare did not return a JA4 or JA3 fingerprint for this request, so the row says so rather than guessing.</li>
       </ul>
     </section>
   </main>
@@ -128,6 +85,7 @@
             <ul>
               <li><a href="/#checks">Checks performed</a></li>
               <li><a href="/checks/">What each check means</a></li>
+              <li><a href="/checks/changelog/">Check catalog changelog</a></li>
               <li><a href="/agents/">For AI agents</a></li>
               <li><a href="https://github.com/blowhorn-ai/tells">Source code</a></li>
             </ul>
