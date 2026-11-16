@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { readdirSync } from "node:fs";
+import { docPagePaths } from "./support/doc-pages.js";
 import { stubSharedCards } from "./support/cards.js";
 
 // No two cards that sit next to each other share a variant (the blowhorn.ai DESIGN.md, "Cards"). Neighbours come
@@ -7,7 +7,7 @@ import { stubSharedCards } from "./support/cards.js";
 // that overlaps it horizontally, its neighbour to the right the nearest card beside it that
 // overlaps it vertically. Cards nested in one another are not neighbours.
 
-const PAGES = ["/checks/", "/checks/browser-data/", "/checks/interaction/", "/checks/platforms/", "/agents/", "/compare/"];
+const PAGES = ["/checks/", "/checks/browser-data/", "/checks/interaction/", "/checks/platforms/", "/agents/", "/compare/", "/methodology/"];
 const WIDTHS = [320, 820, 1280];
 
 test.beforeEach(async ({ page }) => stubSharedCards(page));
@@ -75,9 +75,7 @@ for (const colorScheme of ["dark", "light"]) {
 // Beyond neighbours: a doc page with no more sections than there are card variants (five; glass is
 // reserved for floating surfaces) uses each variant once, so no two of its sections look alike even
 // far apart. Longer pages can only keep neighbours apart. The site footer is chrome, not a section.
-const DOC_PAGES = ["/checks/", "/agents/", "/compare/", ...readdirSync(new URL("../../public/checks/", import.meta.url), { withFileTypes: true })
-  .filter((entry) => entry.isDirectory())
-  .map((entry) => `/checks/${entry.name}/`)];
+const DOC_PAGES = docPagePaths();
 
 test("doc pages with five sections or fewer give each section its own variant", async ({ page }) => {
   const short = [];

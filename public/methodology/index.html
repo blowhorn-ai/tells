@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description"
+    content="How the Blowhorn Tells 0-100 score and pass, warning, and fail verdict are decided, which version a number belongs to, and when two scores can be compared.">
+  <meta name="theme-color" content="#1E2117" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+  <title>How Tells scores | Blowhorn Tells</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="/assets/fonts/BricolageGrotesque-Variable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/InstrumentSans-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="https://blowhorn.ai/assets/brand/cards.css">
+  <link rel="stylesheet" href="/styles.css">
+  <!-- Google Analytics: the same GA4 property as blowhorn.ai. No consent banner on this tool. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-2ZLYGVE3HN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-2ZLYGVE3HN');
+  </script>
+</head>
+
+<body>
+  <div class="ambient-grid" aria-hidden="true"></div>
+  <a class="skip-link" href="#main">Skip to the methodology</a>
+  <header class="site-header">
+    <div class="wrap header-bar">
+      <a class="brand" href="https://blowhorn.ai/" aria-label="Blowhorn home">
+        <img class="logo-dark" src="/assets/brand/blowhorn-lockup-horizontal-on-dark.svg" alt="Blowhorn" width="176" height="44">
+        <img class="logo-light" src="/assets/brand/blowhorn-lockup-horizontal.svg" alt="" width="176" height="44">
+      </a>
+      <a class="product-name" href="/" aria-label="Tells, the bot detection test">Tells</a>
+      <nav class="site-nav" aria-label="Blowhorn">
+        <ul>
+          <li><a href="https://blowhorn.ai/">What is Blowhorn</a></li>
+          <li><a href="https://blowhorn.ai/pricing/">Pricing</a></li>
+          <li><a href="https://blowhorn.ai/docs/">Docs</a></li>
+          <li><a href="https://github.com/blowhorn-ai/tells" target="_blank" rel="noopener noreferrer">Source</a></li>
+        </ul>
+      </nav>
+      <a class="button-primary site-cta" href="https://blowhorn.ai/download/">Get Blowhorn</a>
+    </div>
+  </header>
+
+  <main id="main" class="wrap doc-page">
+    <p class="eyebrow">Blowhorn Tells</p>
+    <h1>How Tells scores</h1>
+    <p class="lede">This is the methodology for the number Tells returns. It says how the
+      0-100 score and the pass, warn, and fail verdict are decided, and which version a
+      score belongs to. The points and the rule for each check live in the catalog.
+      This page links that catalog. It does not repeat it.</p>
+
+    <!-- Four sections, four variants. The footer panel is card-plain, so the last section is not. -->
+    <section class="panel card card-dispatch">
+      <h2>The score and the verdict</h2>
+      <p>The score runs from 0 to 100. It starts at 100. Each finding subtracts points.
+        The result is kept inside that range.</p>
+      <p>Three bands turn the score into the report verdict:</p>
+      <ul>
+        <li>75 and up is <code>likely_human</code>. The page says Looks human. Risk is low.</li>
+        <li>45 to 74 is <code>suspicious</code>. The page says Hard to tell. Risk is medium.</li>
+        <li>Under 45 is <code>likely_bot</code>. The page says Looks like a bot. Risk is high.</li>
+      </ul>
+      <p>Each check is its own pass, warn, or fail verdict, separate from that band.
+        The labels on the page are Pass, Warning, and Fail:</p>
+      <ul>
+        <li><strong>Pass:</strong> the readings arrived and no finding matched.</li>
+        <li><strong>Warning</strong> (<code>warn</code>): a medium or low severity finding matched.</li>
+        <li><strong>Fail:</strong> a high severity finding matched.</li>
+        <li><strong>Not available:</strong> the readings never arrived. That is a gap in coverage, not a failure.</li>
+      </ul>
+      <p>When several findings match one check, the row shows the worst severity.
+        How many points each finding subtracts is in the
+        <a href="/checks/">check guide</a>, one page per check, and in the catalog linked below.</p>
+    </section>
+
+    <section class="panel card card-stamp">
+      <h2>Scoring happens on the server</h2>
+      <p>The browser collects readings and posts them. The Worker scores the report and
+        returns it. Scoring happens on the server. A score or a check status that the
+        browser sends is not the verdict. The Worker derives the behaviour score, the
+        interaction checks, and the fingerprint classes again, and the verdict uses
+        those derived values.</p>
+      <p><code>GET /api/check</code> scores the request alone: headers, IP reputation, TLS,
+        and managed bot signals. It does not use browser readings.
+        <code>POST /api/report</code> scores the posted readings together with that request.
+        <code>schema_version</code> is on the success body of <code>GET /api/check</code> and
+        <code>POST /api/report</code>. An error body is not that document. Download JSON and
+        Copy JSON are the <code>/api/report</code> success body, so a saved report carries
+        <code>schema_version</code>.</p>
+      <p>The check body is
+        <a href="https://github.com/blowhorn-ai/tells/blob/master/schemas/check.schema.json"><code>schemas/check.schema.json</code></a>.
+        The report body is
+        <a href="https://github.com/blowhorn-ai/tells/blob/master/schemas/report.schema.json"><code>schemas/report.schema.json</code></a>.</p>
+    </section>
+
+    <section class="panel card card-field">
+      <h2>Which version a number belongs to</h2>
+      <p><code>schema_version</code> is 1. It names the report contract, the two schemas
+        above. It changes only when that contract breaks. Numbers from an older
+        <code>schema_version</code> are not on the new scale.</p>
+      <p>The check catalog,
+        <a href="https://github.com/blowhorn-ai/tells/blob/master/schemas/check-catalog.json"><code>schemas/check-catalog.json</code></a>,
+        has <code>catalog_version</code>. <code>catalog_version</code> is 1.0.1.
+        It is the semver of that file. The file lists every check and every scored
+        reason that already ships. <code>catalog_version</code> is not a field on
+        <code>/api/report</code>. The
+        <a href="/checks/changelog/">changelog</a> records each catalog version.</p>
+    </section>
+
+    <section class="panel card card-paper">
+      <h2>When two scores can be compared</h2>
+      <p>Scores are only comparable across the same <code>schema_version</code>, and across
+        the same catalog when you cite a check. A 90 on one <code>schema_version</code> is
+        not the same claim as a 90 on another. A check you name is not the same check
+        once <code>catalog_version</code> changes what it reads or how many points it subtracts.</p>
+      <p>To diff two saved reports, open <a href="/compare/">/compare/</a>.
+        When <code>schema_version</code> is missing or the two versions differ, that page
+        warns and still diffs the fields that overlap. The warning and the diff live there.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-panel card card-plain">
+        <div class="footer-top">
+          <div class="footer-brand">
+            <a class="footer-logo" href="https://blowhorn.ai/" aria-label="Blowhorn home">
+              <img class="logo-dark" src="/assets/brand/blowhorn-lockup-horizontal-on-dark.svg" alt="Blowhorn" width="200" height="50">
+              <img class="logo-light" src="/assets/brand/blowhorn-lockup-horizontal.svg" alt="" width="200" height="50">
+            </a>
+            <p class="footer-tagline">Your voice, at full volume.</p>
+            <p class="footer-about">Tells is a free check from the Blowhorn team. It shows what websites can read about your browser.</p>
+          </div>
+        </div>
+        <nav class="footer-cols" aria-label="Footer">
+          <div class="footer-col">
+            <h2 class="footer-title">Tells</h2>
+            <ul>
+              <li><a href="/#checks">Checks performed</a></li>
+              <li><a href="/checks/">What each check means</a></li>
+              <li><a href="/checks/changelog/">Check catalog changelog</a></li>
+              <li><a href="/methodology/">How scoring works</a></li>
+              <li><a href="/compare/">Compare two reports</a></li>
+              <li><a href="/agents/">For AI agents</a></li>
+              <li><a href="https://github.com/blowhorn-ai/tells">Source code</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h2 class="footer-title">Blowhorn</h2>
+            <ul>
+              <li><a href="https://blowhorn.ai/">What is Blowhorn</a></li>
+              <li><a href="https://blowhorn.ai/download/">Download</a></li>
+              <li><a href="https://blowhorn.ai/pricing/">Pricing</a></li>
+              <li><a href="https://blowhorn.ai/docs/">Docs</a></li>
+            </ul>
+          </div>
+        </nav>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Layer5, Inc.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+
+</html>
