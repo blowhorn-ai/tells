@@ -105,9 +105,10 @@ const report = JSON.parse(
       <h3>3. Run the CLI</h3>
       <p>The <code>tells</code> command in this repo prints that same JSON and a one-line verdict.
         Stdout is only the body. Stderr is <code>&lt;classification&gt; score=&lt;n&gt;</code>.
-        Exit 0 is <code>likely_human</code>, 3 is <code>suspicious</code>, 4 is <code>likely_bot</code>,
+        Exit 0 is <code>likely_human</code> or <code>--help</code>, 3 is <code>suspicious</code>, 4 is <code>likely_bot</code>,
         2 means the run failed, and 1 is a usage error. A headless Playwright run is expected to
         exit 4. <code>--server-only</code> prints <code>GET /api/check</code> and needs no browser.
+        Playwright is optional and is not installed by <code>npx</code>.
         The command does not save the report.</p>
       <pre><code>node bin/tells.js
 node bin/tells.js --server-only

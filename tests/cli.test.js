@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  CliError,
   EXIT,
   assertTellsBody,
   checkUrl,
@@ -64,7 +65,7 @@ describe("parseCliArgs", () => {
     const code = await main(["--help"], io);
     expect(code).toBe(EXIT.LIKELY_HUMAN);
     expect(io.out.join("\n")).toBe(helpText());
-    expect(io.out[0]).toContain("0  classification likely_human");
+    expect(io.out[0]).toContain("0  classification likely_human, or --help / -h");
     expect(io.out[0]).toContain("3  classification suspicious");
     expect(io.out[0]).toContain("4  classification likely_bot");
     expect(io.err).toEqual([]);
@@ -161,5 +162,39 @@ describe("main", () => {
   it("rejects a body that is not schema_version 1", () => {
     expect(() => assertTellsBody({ ok: true, schema_version: 1 })).toThrow(/schema_version 1/);
     expect(() => assertTellsBody({ ...fixture, schema_version: 2 })).toThrow(/schema_version 1/);
+  });
+
+  it("exits 2 with the install step when Playwright or Chromium is missing", async () => {
+    const missingLib = capture();
+    const missingLibCode = await main([], {
+      ...missingLib,
+      loadPlaywright: async () => {
+        throw new CliError(
+          "Playwright is not installed. From a checkout run `pnpm exec playwright install chromium`. Or run `tells --server-only` to call GET /api/check with no browser. The README documents a live browser pass.",
+          EXIT.RUN_FAILED
+        );
+      }
+    });
+    expect(missingLibCode).toBe(EXIT.RUN_FAILED);
+    expect(missingLib.err[0]).toMatch(/Playwright is not installed/);
+    expect(missingLib.err[0]).toMatch(/--server-only/);
+    expect(missingLib.out).toEqual([]);
+
+    const missingBrowser = capture();
+    const missingBrowserCode = await main([], {
+      ...missingBrowser,
+      playwright: {
+        chromium: {
+          launch: async () => {
+            throw new Error("Executable doesn't exist");
+          }
+        }
+      }
+    });
+    expect(missingBrowserCode).toBe(EXIT.RUN_FAILED);
+    expect(missingBrowser.err[0]).toMatch(/Could not launch Chromium/);
+    expect(missingBrowser.err[0]).toMatch(/playwright install chromium/);
+    expect(missingBrowser.err[0]).toMatch(/Executable doesn't exist/);
+    expect(missingBrowser.out).toEqual([]);
   });
 });

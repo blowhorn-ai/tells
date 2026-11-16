@@ -31,8 +31,9 @@ Usage:
 
 The default run opens <url> in headless Chromium through Playwright and prints
 the JSON in [data-tells-report="raw"] (the POST /api/report body,
-schemas/report.schema.json, schema_version 1). Playwright is optional. If it
-is not installed the command exits 2 and names the install step.
+schemas/report.schema.json, schema_version 1). Playwright is optional: it is a
+dev dependency in this checkout and is not installed by npx. If Playwright or
+Chromium is missing the command exits 2 and names the install step.
 
 --server-only calls GET /api/check on the same origin and prints that body
 (schemas/check.schema.json, schema_version 1). No browser.
@@ -41,7 +42,7 @@ Stdout is the JSON only. Stderr is one line: "<classification> score=<n>".
 The command does not write the report to disk.
 
 Exit codes:
-  0  classification likely_human
+  0  classification likely_human, or --help / -h (usage on stdout)
   1  usage error
   2  the run failed (browser, network, timeout, or a body that is not schema_version 1)
   3  classification suspicious
@@ -177,9 +178,18 @@ export async function fetchCheck(pageUrl, timeoutMs, fetchImpl = globalThis.fetc
   return assertTellsBody(body);
 }
 
-export async function runBrowser(pageUrl, timeoutMs, playwrightImpl) {
-  const playwright = playwrightImpl ?? await loadPlaywright();
-  const browser = await playwright.chromium.launch({ headless: true });
+export async function runBrowser(pageUrl, timeoutMs, playwrightImpl, loadPlaywrightImpl) {
+  const playwright = playwrightImpl ?? await (loadPlaywrightImpl ?? loadPlaywright)();
+  let browser;
+  try {
+    browser = await playwright.chromium.launch({ headless: true });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new CliError(
+      `Could not launch Chromium. From a checkout run \`pnpm exec playwright install chromium\`. Or run \`tells --server-only\` to call GET /api/check with no browser. ${detail}`,
+      EXIT.RUN_FAILED
+    );
+  }
   try {
     const page = await browser.newPage();
     page.setDefaultTimeout(timeoutMs);
@@ -195,7 +205,7 @@ export async function runBrowser(pageUrl, timeoutMs, playwrightImpl) {
     }
     return report;
   } finally {
-    await browser.close();
+    if (browser) await browser.close();
   }
 }
 
@@ -215,6 +225,7 @@ export async function main(argv, io = {}) {
   const stderr = io.stderr ?? ((text) => process.stderr.write(`${text}\n`));
   const fetchImpl = io.fetchImpl ?? globalThis.fetch;
   const playwrightImpl = io.playwright;
+  const loadPlaywrightImpl = io.loadPlaywright;
 
   let args;
   try {
@@ -232,7 +243,7 @@ export async function main(argv, io = {}) {
   try {
     const body = args.serverOnly
       ? await fetchCheck(args.url, args.timeoutMs, fetchImpl)
-      : await runBrowser(args.url, args.timeoutMs, playwrightImpl);
+      : await runBrowser(args.url, args.timeoutMs, playwrightImpl, loadPlaywrightImpl);
     stdout(formatReport(body, args.compact));
     stderr(formatVerdictLine(body));
     return exitCodeForClassification(body.verdict.classification);

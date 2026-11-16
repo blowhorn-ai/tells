@@ -65,7 +65,7 @@ The package stays private on npm. The GitHub entry is the public `npx` path. The
 
 Stdout is the JSON body and nothing else. The default run opens the page in headless Chromium with Playwright and prints the text of `[data-tells-report="raw"]`, which is the `POST /api/report` body (`schemas/report.schema.json`, `schema_version` 1). `--server-only` skips the browser and prints `GET /api/check` (`schemas/check.schema.json`, `schema_version` 1). `--compact` prints one JSON line. Stderr is a single line, `<classification> score=<n>`.
 
-Playwright is a dependency so the browser run can load it. Chromium itself is not bundled. `--server-only` does not need a browser. A live browser pass:
+Playwright is optional. It is a dev dependency in this checkout so a local browser run can load it, and it is not a production dependency, so `npx github:blowhorn-ai/tells` does not install it. Chromium itself is not bundled. `--server-only` does not need a browser and is the npx path that needs no extra install. A live browser pass from a checkout:
 
 ```bash
 pnpm exec playwright install chromium
@@ -76,7 +76,7 @@ Start `pnpm dev` first when the URL is local. If Playwright or Chromium is missi
 
 | Exit | Meaning |
 |---|---|
-| 0 | `likely_human` |
+| 0 | `likely_human`, or `--help` / `-h` (usage on stdout) |
 | 1 | Usage error |
 | 2 | The run failed, or the body is not `schema_version` 1 |
 | 3 | `suspicious` |
