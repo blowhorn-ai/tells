@@ -4,10 +4,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="What the Datacenter pattern check in Blowhorn Tells reads, how its Pass, Warning and Fail results are decided, and why websites care about it.">
+  <meta name="description" content="What the Datacenter pattern check reads, how Pass, Warning, Fail and Not available are decided, and the points it can subtract. Catalog 1.0.0.">
   <meta name="theme-color" content="#1E2117" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
-  <title>Datacenter pattern check: what it is and how to read it | Blowhorn Tells</title>
+  <title>Datacenter pattern check | Blowhorn Tells</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preload" href="/assets/fonts/BricolageGrotesque-Variable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/InstrumentSans-Regular.woff2" as="font" type="font/woff2" crossorigin>
@@ -38,7 +38,7 @@
           <li><a href="https://blowhorn.ai/">What is Blowhorn</a></li>
           <li><a href="https://blowhorn.ai/pricing/">Pricing</a></li>
           <li><a href="https://blowhorn.ai/docs/">Docs</a></li>
-          <li><a href="https://github.com/layer5io/blowhorn-tells" target="_blank" rel="noopener noreferrer">Source</a></li>
+          <li><a href="https://github.com/blowhorn-ai/tells" target="_blank" rel="noopener noreferrer">Source</a></li>
         </ul>
       </nav>
       <a class="button-primary site-cta" href="https://blowhorn.ai/download/">Get Blowhorn</a>
@@ -46,20 +46,10 @@
   </header>
 
   <main id="main" class="wrap doc-page">
-    <p class="eyebrow"><a href="/checks/">Check guide</a> · On the wire</p>
+    <p class="eyebrow"><a href="/checks/">Check guide</a> · Fingerprint consistency</p>
     <h1>Datacenter pattern</h1>
-    <p class="lede">Does the network this IP belongs to look like a hosting provider?</p>
-
+    <p class="lede">Group: fingerprint. Since v0.2.0. Catalog 1.0.0.</p>
     <section class="panel card card-field">
-      <h2>What this check is</h2>
-      <p>Every IP address belongs to a network with an owner. This check reads the
-          owner name of the network the request came from and asks a simple question: does this
-          look like a company that rents servers, or like a company that sells internet access
-          to households? People browse from the second kind. Bots are usually hosted on the
-          first.</p>
-    </section>
-
-    <section class="panel card card-stamp">
       <h2>What Tells reads</h2>
       <ul>
           <li>The ASN organization name Cloudflare reports for the connecting IP</li>
@@ -67,46 +57,19 @@
       </ul>
     </section>
 
-    <section class="panel card card-plain">
-      <h2>How to read your result</h2>
+    <section class="panel card card-stamp">
+      <h2>How the result is decided</h2>
       <ul>
-          <li><strong>Warning:</strong> The network owner's name resembles a hosting or datacenter provider.</li>
           <li><strong>Pass:</strong> The owner reads as a consumer or business ISP.</li>
+          <li><strong>Warning:</strong> The network owner's name resembles a hosting or datacenter provider.</li>
           <li><strong>Not available:</strong> No network owner was reported for this connection.</li>
       </ul>
     </section>
 
-    <section class="panel card card-field">
-      <h2>Why it matters</h2>
-      <p>It is the cheapest reputation question a site can ask, and it is asked about
-          every request. A hosting-range IP does not get a session banned by itself, but it
-          starts the conversation in debt: everything else the browser does is read in that
-          light. It is also the finding most often responsible when a technically clean
-          browser still scores badly from a VPS or a corporate egress range.</p>
-    </section>
-    <section class="panel card card-stamp">
-      <h2>Where this matters most</h2>
-      <p>Across the platforms Blowhorn works with, rated in the
-        <a href="/checks/platforms/">platform guide</a> (H = matters a lot, M = contributes,
-        L = no public evidence; tags mark vendor-stated, reported, or inferred evidence):</p>
-      <ul>
-          <li><strong>LinkedIn (M):</strong> datacenter egress is a classic checkpoint trigger for a fraud-sensitive login <span class="muted">[Reported]</span></li>
-          <li><strong>X (H):</strong> datacenter IPs are flagged far more aggressively than residential ones <span class="muted">[Reported]</span></li>
-          <li><strong>Reddit (H):</strong> server IPs get much stricter limits and scrutiny <span class="muted">[Reported]</span></li>
-          <li><strong>Hacker News (M):</strong> datacenter-origin accounts attract the spam filter <span class="muted">[Inference]</span></li>
-      </ul>
-      <p>Everywhere else in the set this one rates Low.</p>
-    </section>
     <section class="panel card card-dispatch">
-      <h2>In your report</h2>
-      <p>Find it in the <a href="/#checks">Checks performed</a> list on the tool page, with the detail in
-        the <a href="/#panel-network">Network identity</a> section. The same findings appear in the
-        report JSON under <code>verdict.reasons</code>, and the agent guide explains
-        <a href="/agents/">how to read them programmatically</a>.</p>
-      <h3>Related checks</h3>
+      <h2>Findings</h2>
       <ul>
-          <li><a href="/checks/vpn-proxy-tor/">VPN / proxy / Tor intelligence</a></li>
-          <li><a href="/checks/proxy-indicators/">Proxy indicators</a></li>
+          <li><code>datacenter_asn_heuristic</code>: medium, 15 points. since v0.2.0</li>
       </ul>
     </section>
   </main>
@@ -130,8 +93,9 @@
             <ul>
               <li><a href="/#checks">Checks performed</a></li>
               <li><a href="/checks/">What each check means</a></li>
+              <li><a href="/checks/changelog/">Check catalog changelog</a></li>
               <li><a href="/agents/">For AI agents</a></li>
-              <li><a href="https://github.com/layer5io/blowhorn-tells">Source code</a></li>
+              <li><a href="https://github.com/blowhorn-ai/tells">Source code</a></li>
             </ul>
           </div>
           <div class="footer-col">

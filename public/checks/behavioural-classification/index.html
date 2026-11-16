@@ -4,10 +4,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="What the Behavioural classification check in Blowhorn Tells reads, how its Pass, Warning and Fail results are decided, and why websites care about it.">
+  <meta name="description" content="What the Behavioural classification check reads, how Pass, Warning, Fail and Not available are decided, and the points it can subtract. Catalog 1.0.0.">
   <meta name="theme-color" content="#1E2117" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
-  <title>Behavioural classification check: what it is and how to read it | Blowhorn Tells</title>
+  <title>Behavioural classification check | Blowhorn Tells</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preload" href="/assets/fonts/BricolageGrotesque-Variable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/InstrumentSans-Regular.woff2" as="font" type="font/woff2" crossorigin>
@@ -38,7 +38,7 @@
           <li><a href="https://blowhorn.ai/">What is Blowhorn</a></li>
           <li><a href="https://blowhorn.ai/pricing/">Pricing</a></li>
           <li><a href="https://blowhorn.ai/docs/">Docs</a></li>
-          <li><a href="https://github.com/layer5io/blowhorn-tells" target="_blank" rel="noopener noreferrer">Source</a></li>
+          <li><a href="https://github.com/blowhorn-ai/tells" target="_blank" rel="noopener noreferrer">Source</a></li>
         </ul>
       </nav>
       <a class="button-primary site-cta" href="https://blowhorn.ai/download/">Get Blowhorn</a>
@@ -46,21 +46,10 @@
   </header>
 
   <main id="main" class="wrap doc-page">
-    <p class="eyebrow"><a href="/checks/">Check guide</a> · Behaviour</p>
+    <p class="eyebrow"><a href="/checks/">Check guide</a> · Behavior</p>
     <h1>Behavioural classification</h1>
-    <p class="lede">How the pointer, keys and scroll actually moved.</p>
-
+    <p class="lede">Group: behavior. Since v0.3.3. Catalog 1.0.0.</p>
     <section class="panel card card-field">
-      <h2>What this check is</h2>
-      <p>While the page is open it records its own interaction stream: pointer
-          movement, clicks, key presses, scrolling, focus changes, and their timing. The
-          Worker derives a behaviour score between 0 and 1 from that record. When the page's
-          own score differs, the report keeps it beside the derived score as a cross-check.
-          Human input has a texture: acceleration, hesitation, overshoot, correction. Scripted
-          input has a different one: straight lines, even timing, inhuman completeness, or none at all.</p>
-    </section>
-
-    <section class="panel card card-stamp">
       <h2>What Tells reads</h2>
       <ul>
           <li>Pointer, keyboard, scroll, focus and visibility events and their timing during the visit</li>
@@ -68,51 +57,28 @@
       </ul>
     </section>
 
-    <section class="panel card card-plain">
-      <h2>How to read your result</h2>
+    <section class="panel card card-stamp">
+      <h2>How the result is decided</h2>
       <ul>
-          <li><strong>Fail:</strong> A behaviour score under 0.25, or evidence that is missing or does not hold together.</li>
-          <li><strong>Warning:</strong> A score from 0.25 to 0.5: borderline texture.</li>
           <li><strong>Pass:</strong> A score of 0.5 or better. A short, still visit scores lower than an active one; that is the measure working, not an accusation.</li>
+          <li><strong>Warning:</strong> A score from 0.25 to 0.5: borderline texture.</li>
+          <li><strong>Fail:</strong> A behaviour score under 0.25, or evidence that is missing or does not hold together.</li>
+          <li><strong>Not available:</strong> Behaviour evidence was not collected in this run.</li>
       </ul>
     </section>
 
-    <section class="panel card card-field">
-      <h2>Why it matters</h2>
-      <p>Behaviour is the signal automation budgets feel most. Faking a header is
-          a line of code; faking eight hours of plausible human texture, at scale, without
-          repeating yourself, is a research programme. Sites know this, which is why
-          behaviour analysis sits behind so many challenges that appear only after a page
-          or two of reading. It is also the least portable signal: it says how this session
-          behaved, not what this browser is.</p>
-    </section>
-    <section class="panel card card-stamp">
-      <h2>Where this matters most</h2>
-      <p>Across the platforms Blowhorn works with, rated in the
-        <a href="/checks/platforms/">platform guide</a> (H = matters a lot, M = contributes,
-        L = no public evidence; tags mark vendor-stated, reported, or inferred evidence):</p>
-      <ul>
-          <li><strong>LinkedIn (H):</strong> burst actions, acceptance and response rates, and navigation speed drive restrictions <span class="muted">[Reported]</span></li>
-          <li><strong>X (H):</strong> velocity, follow and unfollow churn, and duplicate content are the core spam model <span class="muted">[Vendor]</span></li>
-          <li><strong>Reddit (M):</strong> posting cadence and account history drive shadowbans; input telemetry is not documented <span class="muted">[Reported]</span></li>
-          <li><strong>GitHub (M):</strong> bulk-activity patterns (mass following and starring, rapid creation) are the documented abuse model <span class="muted">[Vendor]</span></li>
-          <li><strong>Slack (M):</strong> Slack says it detects apps acting spammy and quiets them down <span class="muted">[Vendor]</span></li>
-          <li><strong>Bluesky (M):</strong> spam is defined as automated and bulk interaction patterns <span class="muted">[Vendor]</span></li>
-          <li><strong>Hacker News (M):</strong> voting rings, posting patterns and new-account behaviour drive shadowbans; account behaviour, not input telemetry <span class="muted">[Vendor]</span></li>
-      </ul>
-      <p>Everywhere else in the set this one rates Low.</p>
-    </section>
     <section class="panel card card-dispatch">
-      <h2>In your report</h2>
-      <p>Find it in the <a href="/#checks">Checks performed</a> list on the tool page, with the detail in
-        the <a href="/#panel-behaviour">Behaviour detail</a> section. The same findings appear in the
-        report JSON under <code>verdict.reasons</code>, and the agent guide explains
-        <a href="/agents/">how to read them programmatically</a>.</p>
-      <h3>Related checks</h3>
+      <h2>Findings</h2>
       <ul>
-          <li><a href="/checks/interaction/">Interaction</a></li>
-          <li><a href="/checks/remote-control-tells/">Remote-control tells</a></li>
+          <li><code>behavior_score_low</code>: high, 25 points. since v0.2.0</li>
+          <li><code>behavior_score_borderline</code>: medium, 12 points. since v0.2.0</li>
+          <li><code>behavior_evidence_invalid</code>: high, 25 points. since v0.3.3</li>
       </ul>
+    </section>
+
+    <section class="panel card card-paper">
+      <h2>Note</h2>
+      <p>The row shipped in v0.2.0. behavior_evidence_invalid was added in v0.3.3 when the Worker started deriving the behaviour score (#35, #38).</p>
     </section>
   </main>
 
@@ -135,8 +101,9 @@
             <ul>
               <li><a href="/#checks">Checks performed</a></li>
               <li><a href="/checks/">What each check means</a></li>
+              <li><a href="/checks/changelog/">Check catalog changelog</a></li>
               <li><a href="/agents/">For AI agents</a></li>
-              <li><a href="https://github.com/layer5io/blowhorn-tells">Source code</a></li>
+              <li><a href="https://github.com/blowhorn-ai/tells">Source code</a></li>
             </ul>
           </div>
           <div class="footer-col">

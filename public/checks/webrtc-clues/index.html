@@ -4,10 +4,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="What the WebRTC network clues check in Blowhorn Tells reads, how its Pass, Warning and Fail results are decided, and why websites care about it.">
+  <meta name="description" content="What the WebRTC network clues check reads, how Pass, Warning, Fail and Not available are decided, and the points it can subtract. Catalog 1.0.0.">
   <meta name="theme-color" content="#1E2117" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
-  <title>WebRTC network clues check: what it is and how to read it | Blowhorn Tells</title>
+  <title>WebRTC network clues check | Blowhorn Tells</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preload" href="/assets/fonts/BricolageGrotesque-Variable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/InstrumentSans-Regular.woff2" as="font" type="font/woff2" crossorigin>
@@ -38,7 +38,7 @@
           <li><a href="https://blowhorn.ai/">What is Blowhorn</a></li>
           <li><a href="https://blowhorn.ai/pricing/">Pricing</a></li>
           <li><a href="https://blowhorn.ai/docs/">Docs</a></li>
-          <li><a href="https://github.com/layer5io/blowhorn-tells" target="_blank" rel="noopener noreferrer">Source</a></li>
+          <li><a href="https://github.com/blowhorn-ai/tells" target="_blank" rel="noopener noreferrer">Source</a></li>
         </ul>
       </nav>
       <a class="button-primary site-cta" href="https://blowhorn.ai/download/">Get Blowhorn</a>
@@ -46,20 +46,10 @@
   </header>
 
   <main id="main" class="wrap doc-page">
-    <p class="eyebrow"><a href="/checks/">Check guide</a> · In the browser</p>
+    <p class="eyebrow"><a href="/checks/">Check guide</a> · Fingerprint consistency</p>
     <h1>WebRTC network clues</h1>
-    <p class="lede">The addresses your browser volunteers for voice and video.</p>
-
+    <p class="lede">Group: fingerprint. Since v0.2.0. Catalog 1.0.0.</p>
     <section class="panel card card-field">
-      <h2>What this check is</h2>
-      <p>WebRTC, the browser's calling technology, discovers network addresses it
-          could be reached at and shares them with the page so calls can connect. Those
-          candidate addresses can include the machine's real public IP, even when the
-          browsing itself travels through a VPN or proxy. This check lists what WebRTC
-          exposes and compares it with the address the HTTP request arrived from.</p>
-    </section>
-
-    <section class="panel card card-stamp">
       <h2>What Tells reads</h2>
       <ul>
           <li>WebRTC ICE candidates gathered in the page (via a public STUN server)</li>
@@ -67,43 +57,19 @@
       </ul>
     </section>
 
-    <section class="panel card card-plain">
-      <h2>How to read your result</h2>
+    <section class="panel card card-stamp">
+      <h2>How the result is decided</h2>
       <ul>
-          <li><strong>Fail:</strong> WebRTC exposed a public IP that differs from the request IP: the connection claims one address while the browser volunteers another.</li>
           <li><strong>Pass:</strong> WebRTC's public addresses agree with the request, or it exposed only local addresses.</li>
+          <li><strong>Fail:</strong> WebRTC exposed a public IP that differs from the request IP: the connection claims one address while the browser volunteers another.</li>
           <li><strong>Not available:</strong> WebRTC is unsupported, blocked, or produced no candidates. Privacy tools often disable it; that reads as Not available, not as a failure.</li>
       </ul>
     </section>
 
-    <section class="panel card card-field">
-      <h2>Why it matters</h2>
-      <p>This is the classic proxy leak, and it cuts both ways. For a person using a
-          VPN for privacy, it is a genuine exposure worth knowing about. For an automated
-          setup, it is proof the network story is staged: the proxy says one country while
-          the browser's own calling stack names another. Sites that run WebRTC probes treat
-          a mismatch as one of the strongest single signals available to them.</p>
-    </section>
-    <section class="panel card card-stamp">
-      <h2>Where this matters most</h2>
-      <p>On the platforms Blowhorn works with, this tell rates <strong>Low everywhere</strong>:
-        none of LinkedIn, X, Reddit, GitHub, Slack, Bluesky or Hacker News has public evidence
-        of using it as an anti-bot input. It stays in the tool because it matters on the wider
-        web (it is a standard input to commercial fingerprinting and bot-management products)
-        and because Low is a snapshot, not a law: a platform that buys such a product changes
-        this row without announcing it. The full reasoning is in the
-        <a href="/checks/platforms/">platform guide</a>.</p>
-    </section>
     <section class="panel card card-dispatch">
-      <h2>In your report</h2>
-      <p>Find it in the <a href="/#checks">Checks performed</a> list on the tool page, with the detail in
-        the <a href="/#panel-webrtc">WebRTC comparison</a> section. The same findings appear in the
-        report JSON under <code>verdict.reasons</code>, and the agent guide explains
-        <a href="/agents/">how to read them programmatically</a>.</p>
-      <h3>Related checks</h3>
+      <h2>Findings</h2>
       <ul>
-          <li><a href="/checks/vpn-proxy-tor/">VPN / proxy / Tor intelligence</a></li>
-          <li><a href="/checks/proxy-indicators/">Proxy indicators</a></li>
+          <li><code>webrtc_public_ip_mismatch</code>: high, 25 points. since v0.2.0</li>
       </ul>
     </section>
   </main>
@@ -127,8 +93,9 @@
             <ul>
               <li><a href="/#checks">Checks performed</a></li>
               <li><a href="/checks/">What each check means</a></li>
+              <li><a href="/checks/changelog/">Check catalog changelog</a></li>
               <li><a href="/agents/">For AI agents</a></li>
-              <li><a href="https://github.com/layer5io/blowhorn-tells">Source code</a></li>
+              <li><a href="https://github.com/blowhorn-ai/tells">Source code</a></li>
             </ul>
           </div>
           <div class="footer-col">
