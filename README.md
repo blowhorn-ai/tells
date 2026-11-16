@@ -44,6 +44,46 @@ The open check catalog is [`schemas/check-catalog.json`](schemas/check-catalog.j
 
 API routes are rate limited at the Worker edge by route and client IP (30 calls a minute by default).
 
+## CLI
+
+`bin/tells.js` is the `tells` command (`package.json` `bin`). From a checkout:
+
+```bash
+node bin/tells.js
+node bin/tells.js --url http://127.0.0.1:8787
+node bin/tells.js --server-only
+```
+
+Once this commit is on the default branch, the same command is:
+
+```bash
+npx github:blowhorn-ai/tells
+npx github:blowhorn-ai/tells --server-only
+```
+
+The package stays private on npm. The GitHub entry is the public `npx` path. The command does not publish the package and does not store the report.
+
+Stdout is the JSON body and nothing else. The default run opens the page in headless Chromium with Playwright and prints the text of `[data-tells-report="raw"]`, which is the `POST /api/report` body (`schemas/report.schema.json`, `schema_version` 1). `--server-only` skips the browser and prints `GET /api/check` (`schemas/check.schema.json`, `schema_version` 1). `--compact` prints one JSON line. Stderr is a single line, `<classification> score=<n>`.
+
+Playwright is a dependency so the browser run can load it. Chromium itself is not bundled. `--server-only` does not need a browser. A live browser pass:
+
+```bash
+pnpm exec playwright install chromium
+node bin/tells.js --url http://127.0.0.1:8787
+```
+
+Start `pnpm dev` first when the URL is local. If Playwright or Chromium is missing, the browser run exits 2 and prints the install step. CI that cannot install a browser should run the unit tests (`pnpm test`) and, if it wants a live request, `node bin/tells.js --server-only`.
+
+| Exit | Meaning |
+|---|---|
+| 0 | `likely_human` |
+| 1 | Usage error |
+| 2 | The run failed, or the body is not `schema_version` 1 |
+| 3 | `suspicious` |
+| 4 | `likely_bot` |
+
+A stock headless browser is expected to exit 4. That means the check finished. `tells --help` prints the same codes.
+
 ## Privacy
 
 This is not a "nothing leaves your browser" checker. Scoring happens on the server, so the readings have to get there. This is what happens on each run:

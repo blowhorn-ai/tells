@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "ok": true,
+  "receivedAt": "2026-01-01T00:00:00.000Z",
+  "verdict": {
+    "score": 82,
+    "classification": "likely_human",
+    "risk": "low",
+    "reasons": []
+  },
+  "server": {
+    "headers": {
+      "user-agent": "Test"
+    }
+  },
+  "client": {
+    "consistency": {}
+  },
+  "detections": []
+}

@@ -102,7 +102,17 @@ const report = JSON.parse(
       <p>The surest way to learn the client payload is to run the page once and read the
         <code>client</code> object out of its report. The collectors that build it live in the
         <a href="https://github.com/blowhorn-ai/tells">open source</a> for this site.</p>
-      <h3>3. Compare two saved reports</h3>
+      <h3>3. Run the CLI</h3>
+      <p>The <code>tells</code> command in this repo prints that same JSON and a one-line verdict.
+        Stdout is only the body. Stderr is <code>&lt;classification&gt; score=&lt;n&gt;</code>.
+        Exit 0 is <code>likely_human</code>, 3 is <code>suspicious</code>, 4 is <code>likely_bot</code>,
+        2 means the run failed, and 1 is a usage error. A headless Playwright run is expected to
+        exit 4. <code>--server-only</code> prints <code>GET /api/check</code> and needs no browser.
+        The command does not save the report.</p>
+      <pre><code>node bin/tells.js
+node bin/tells.js --server-only
+npx github:blowhorn-ai/tells</code></pre>
+      <h3>4. Compare two saved reports</h3>
       <p>Download JSON on two runs, then open <a href="/compare/">/compare/</a>. Paste or drop
         both files. The page diffs the verdict label, score and reasons, each check row's status
         and summary, and the flag groups the result page already shows. It does not post the files

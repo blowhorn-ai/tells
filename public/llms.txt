@@ -10,6 +10,11 @@
   (how to drive the page with Playwright or Puppeteer, the API routes
   /api/ping, /api/check and POST /api/report, how the verdict is scored,
   and how to interpret a run.)
+- CLI: `node bin/tells.js` or, on the default branch, `npx github:blowhorn-ai/tells`.
+  Stdout is the schema_version 1 JSON (the page report, or GET /api/check with
+  --server-only). Stderr is "<classification> score=<n>". Exit 0 is
+  likely_human, 3 is suspicious, 4 is likely_bot, 2 is a failed run, 1 is usage.
+  The command does not save the report. Playwright is optional.
 - /api/check and POST /api/report success bodies include schema_version 1.
   The report schema is schemas/report.schema.json and the check schema is
   schemas/check.schema.json (draft 2020-12). Download JSON is that body.
