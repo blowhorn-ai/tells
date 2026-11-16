@@ -13,6 +13,9 @@ import {
   withValidInteraction
 } from "./report-verdict.js";
 
+// Integer 1 matches schemas/v1/. Bump it only when the report or check schema breaks.
+export const SCHEMA_VERSION = 1;
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -42,7 +45,7 @@ export default {
       if (url.pathname === "/api/check") {
         const server = await collectServer(request, env);
         const verdict = scoreReport({ server, client: null });
-        return json({ ok: true, receivedAt: new Date().toISOString(), verdict, server });
+        return json({ schema_version: SCHEMA_VERSION, ok: true, receivedAt: new Date().toISOString(), verdict, server });
       }
 
       if (url.pathname === "/api/report" && request.method === "POST") {
@@ -60,6 +63,7 @@ export default {
         );
         const detections = detectionMatrix(server, client);
         return json({
+          schema_version: SCHEMA_VERSION,
           ok: true,
           receivedAt: new Date().toISOString(),
           verdict,

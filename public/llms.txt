@@ -10,6 +10,9 @@
   (how to drive the page with Playwright or Puppeteer, the API routes
   /api/ping, /api/check and POST /api/report, how the verdict is scored,
   and how to interpret a run.)
+- /api/check and POST /api/report success bodies include schema_version 1.
+  The report schema is schemas/report.schema.json and the check schema is
+  schemas/check.schema.json (draft 2020-12). Download JSON is that body.
 - What each check means: https://tells.blowhorn.ai/checks/
   (one page per check: what it reads, how its result is decided, why it
   matters, and where it matters most.)

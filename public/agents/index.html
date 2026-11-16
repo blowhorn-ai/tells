@@ -85,13 +85,15 @@ const report = JSON.parse(
             </tr>
             <tr>
               <td><code>GET /api/check</code></td>
-              <td>A verdict scored from the request alone: headers, IP reputation, TLS and managed bot signals. No browser readings involved.</td>
+              <td>A verdict scored from the request alone: headers, IP reputation, TLS and managed bot signals. No browser readings involved. The body is <code>{ schema_version, ok, receivedAt, verdict, server }</code> with <code>schema_version</code> <code>1</code> (<code>schemas/check.schema.json</code>).</td>
             </tr>
             <tr>
               <td><code>POST /api/report</code></td>
               <td>The full report. Send the client readings object as JSON (192 KB at most); the response is
-                <code>{ ok, receivedAt, verdict, server, client, detections }</code>, with the client object
-                returned enriched with cross-context consistency readings. This route answers cross-origin
+                <code>{ schema_version, ok, receivedAt, verdict, server, client, detections }</code>
+                (<code>schema_version</code> <code>1</code>, <code>schemas/report.schema.json</code>), with the client object
+                returned enriched with cross-context consistency readings. Download JSON and Copy JSON
+                serialize that body. This route answers cross-origin
                 callers with CORS headers, so a page or agent on another origin may post to it.</td>
             </tr>
           </tbody>
