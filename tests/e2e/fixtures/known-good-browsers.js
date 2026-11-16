@@ -183,6 +183,7 @@ export const disallowedKnownGoodReasonIds = [
   "webdriver_own_property",
   "webdriver_getter_patched",
   "native_function_patched",
+  "prototype_lie_mismatch",
   "document_automation_keys",
   "synthetic_input",
   "input_while_hidden",

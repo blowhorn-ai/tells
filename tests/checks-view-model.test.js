@@ -363,7 +363,15 @@ describe("verdict card fields", () => {
     // The other side of each either/or branch above.
     score({ userAgent: "x", cloudflareBotManagement: { available: true, score: 40, verifiedBot: false } }, {
       browser: { userAgent: "Mozilla/5.0 Chrome/120.0", plugins: [{}], pluginsConsistency: { itemOverflowMatchesFirst: false }, permissions: { notifications: { state: "prompt", permission: "denied" } } },
-      tells: { webdriver: { getterNative: false }, input: { trustedWithoutFocus: 1 } },
+      tells: {
+        webdriver: { getterNative: false },
+        input: { trustedWithoutFocus: 1 },
+        prototypeLies: {
+          page: { functionToString: true, getters: { webdriver: true, languages: true, plugins: true } },
+          iframe: { functionToString: true, getters: { webdriver: true, languages: false, plugins: true } },
+          worker: { functionToString: true, getters: { webdriver: true, languages: true, plugins: null } }
+        }
+      },
       behavior: {
         score: 0.4,
         summary: {

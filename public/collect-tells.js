@@ -16,10 +16,102 @@ export function collectTells(state) {
       functionToString: isNative(Function.prototype.toString),
       permissionsQuery: navigator.permissions?.query ? isNative(navigator.permissions.query) : null
     },
+    // Page half of the cross-context probe. The iframe and Worker readings are attached
+    // after collectWorkers, because those realms are not available synchronously.
+    prototypeLies: { page: probePrototypeLies(navigator) },
     documentAutomationKeys: matchAutomationGlobals(Object.keys(document)),
     chromeMajor: chromeMajor(navigator.userAgent),
     input: summarizeInput(inputEvents(state))
   };
+}
+
+// Documented first slice of CreepJS-style lie depth. Each context runs this function in its
+// own realm, so a hooked Function.prototype.toString on the page cannot vouch for the others.
+// Getter surfaces: navigator.webdriver, navigator.languages, navigator.plugins.
+// plugins is absent in a Worker (null) and is compared only where two contexts both read it.
+export const PROTOTYPE_LIE_GETTERS = Object.freeze(["webdriver", "languages", "plugins"]);
+
+export function probePrototypeLies(nav) {
+  function nativeSource(fn) {
+    try {
+      if (typeof fn !== "function") return null;
+      return Function.prototype.toString.call(fn).includes("[native code]");
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function getterNative(proto, target, prop) {
+    try {
+      const desc = (proto && Object.getOwnPropertyDescriptor(proto, prop)) || Object.getOwnPropertyDescriptor(target, prop);
+      if (!desc) return null;
+      if (typeof desc.get === "function") return nativeSource(desc.get);
+      return false;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  const target = nav || navigator;
+  let proto = null;
+  try {
+    proto = Object.getPrototypeOf(target);
+  } catch (_) {
+    proto = null;
+  }
+  // Literal list, not the exported constant: this function's source is evaluated in an iframe and a Worker.
+  const getters = {};
+  for (const prop of ["webdriver", "languages", "plugins"]) getters[prop] = getterNative(proto, target, prop);
+  return { functionToString: nativeSource(Function.prototype.toString), getters };
+}
+
+// Source the iframe and Worker evaluate inside their own realm. Nested helpers travel with it.
+export function prototypeLieProbeSource() {
+  return `(${probePrototypeLies.toString()})`;
+}
+
+const PROTOTYPE_LIE_CONTEXTS = ["page", "iframe", "worker"];
+
+// A lie here is a disagreement, not a uniform patch. A function that is patched in every
+// context is already scored by native_function_patched or prototype_getter_not_native.
+export function prototypeLieMismatches(probes) {
+  if (!probes || typeof probes !== "object") return [];
+  const contexts = {};
+  for (const name of PROTOTYPE_LIE_CONTEXTS) {
+    const probe = probes[name];
+    if (!probe || probe.error || typeof probe.functionToString !== "boolean" || !probe.getters) continue;
+    contexts[name] = probe;
+  }
+  const names = Object.keys(contexts);
+  if (names.length < 2) return [];
+
+  const mismatches = [];
+  const fnValues = names.map((name) => contexts[name].functionToString);
+  if (fnValues.includes(true) && fnValues.includes(false)) {
+    mismatches.push({
+      surface: "Function.prototype.toString",
+      values: Object.fromEntries(names.map((name) => [name, contexts[name].functionToString]))
+    });
+  }
+
+  const getterNames = [];
+  for (const name of names) {
+    for (const prop of Object.keys(contexts[name].getters)) {
+      if (!getterNames.includes(prop)) getterNames.push(prop);
+    }
+  }
+  for (const prop of getterNames) {
+    const present = names.filter((name) => typeof contexts[name].getters[prop] === "boolean");
+    if (present.length < 2) continue;
+    const values = present.map((name) => contexts[name].getters[prop]);
+    if (values.includes(true) && values.includes(false)) {
+      mismatches.push({
+        surface: `navigator.${prop}`,
+        values: Object.fromEntries(present.map((name) => [name, contexts[name].getters[prop]]))
+      });
+    }
+  }
+  return mismatches;
 }
 
 function collectWebdriverDescriptor() {

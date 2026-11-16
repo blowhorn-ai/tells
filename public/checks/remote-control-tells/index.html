@@ -66,6 +66,7 @@
           <li>A CDP serialization probe (a known side channel of the DevTools protocol)</li>
           <li>Whether the webdriver getter is native, and whether the property was redefined to hide</li>
           <li>Whether everyday native functions (Function.prototype.toString, permissions.query) have been replaced by script</li>
+          <li>Whether Function.prototype.toString and the navigator.webdriver, languages, and plugins getters agree across the page, a same-origin iframe, and a Web Worker</li>
           <li>Input event trust: scripted events anywhere on the page, the interaction test's typing and clicks included, and events while the document is hidden or unfocused</li>
           <li>Impossible window geometry (a zero outer size)</li>
       </ul>
@@ -75,7 +76,7 @@
       <h2>How to read your result</h2>
       <ul>
           <li><strong>Fail:</strong> Driver globals or document keys found, scripted input, input into a hidden page, a zero-size window, or evidence the webdriver flag was hidden by patching. These are the most specific findings in the whole report.</li>
-          <li><strong>Warning:</strong> The CDP probe tripped, everyday functions were replaced by script, or trusted input arrived while the page lacked focus.</li>
+          <li><strong>Warning:</strong> The CDP probe tripped, everyday functions were replaced by script, Function.prototype.toString or a navigator getter disagrees across contexts, or trusted input arrived while the page lacked focus.</li>
           <li><strong>Pass:</strong> No machinery found and no patch seams showing.</li>
       </ul>
     </section>

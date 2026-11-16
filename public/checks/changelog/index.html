@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Catalog version 1.0.0 of the Blowhorn Tells check catalog: the checks and scored reasons already shipping, and the releases they belong to.">
+  <meta name="description" content="Catalog version 1.0.1 of the Blowhorn Tells check catalog: the checks and scored reasons already shipping, and the releases they belong to.">
   <meta name="theme-color" content="#1E2117" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
   <title>Check catalog changelog | Blowhorn Tells</title>
@@ -52,6 +52,16 @@
       <a href="https://github.com/blowhorn-ai/tells/blob/master/schemas/check-catalog.json"><code>schemas/check-catalog.json</code></a>
       (schema <code>schemas/check-catalog.schema.json</code>). <code>catalog_version</code> is the
       version of that file. It records the checks that already ship. It does not add any.</p>
+
+    <section class="panel card card-field">
+      <h2>1.0.1</h2>
+      <p>Adds <code>prototype_lie_mismatch</code> (15 points, medium) on remote-control tells.
+        The page, a same-origin iframe, and a Web Worker each read <code>Function.prototype.toString</code>
+        and the <code>navigator.webdriver</code>, <code>languages</code>, and <code>plugins</code> getters.
+        The reason scores only when those readings disagree. A patch that looks the same in every
+        context keeps <code>native_function_patched</code> or <code>prototype_getter_not_native</code>
+        and its existing points. The reason's <code>since</code> is <code>master</code> until the next release.</p>
+    </section>
 
     <section class="panel card card-field">
       <h2>1.0.0</h2>

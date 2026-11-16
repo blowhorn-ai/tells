@@ -133,6 +133,15 @@ const triggers = {
   webdriver_own_property: () => reason({}, quietClient({ tells: { webdriver: { definedOn: "navigator" } } }), "webdriver_own_property"),
   webdriver_getter_patched: () => reason({}, quietClient({ tells: { webdriver: { getterNative: false, definedOn: "prototype" } } }), "webdriver_getter_patched"),
   native_function_patched: () => reason({}, quietClient({ tells: { nativeFunctions: { functionToString: false } } }), "native_function_patched"),
+  prototype_lie_mismatch: () => reason({}, quietClient({
+    tells: {
+      prototypeLies: {
+        page: { functionToString: true, getters: { webdriver: true, languages: true, plugins: true } },
+        iframe: { functionToString: false, getters: { webdriver: true, languages: true, plugins: true } },
+        worker: { functionToString: true, getters: { webdriver: true, languages: true, plugins: null } }
+      }
+    }
+  }), "prototype_lie_mismatch"),
   synthetic_input: () => reason({}, quietClient({ tells: { input: { untrusted: 2 } } }), "synthetic_input"),
   input_while_hidden: () => reason({}, quietClient({ tells: { input: { trustedWhileHidden: 1 } } }), "input_while_hidden"),
   input_without_focus: () => reason({}, quietClient({ tells: { input: { trustedWithoutFocus: 1 } } }), "input_without_focus"),

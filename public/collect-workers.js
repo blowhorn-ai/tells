@@ -1,3 +1,4 @@
+import { prototypeLieProbeSource } from "./collect-tells.js";
 import { promiseWithTimeout, sleep } from "./utils.js";
 
 export async function collectWorkers() {
@@ -12,6 +13,7 @@ export async function collectWorkers() {
 async function collectWebWorker() {
   if (!window.Worker) return { supported: false };
   const code = `
+    const probePrototypeLies = ${prototypeLieProbeSource()};
     async function collect() {
       const out = {
         supported: true,
@@ -23,7 +25,8 @@ async function collectWebWorker() {
         deviceMemory: navigator.deviceMemory || null,
         webdriver: navigator.webdriver,
         vendor: navigator.vendor,
-        appVersion: navigator.appVersion
+        appVersion: navigator.appVersion,
+        prototypeLies: probePrototypeLies(navigator)
       };
       try {
         if (navigator.userAgentData) {
@@ -66,7 +69,10 @@ async function collectIframeNavigator() {
   document.body.appendChild(iframe);
   await sleep(0);
   try {
-    const n = iframe.contentWindow.navigator;
+    const win = iframe.contentWindow;
+    const n = win.navigator;
+    // Compiled in the iframe so Function.prototype.toString is that realm's, not the page's.
+    const probe = win.Function(`return ${prototypeLieProbeSource()}`)();
     return {
       supported: true,
       userAgent: n.userAgent,
@@ -78,7 +84,8 @@ async function collectIframeNavigator() {
       webdriver: n.webdriver,
       vendor: n.vendor,
       appVersion: n.appVersion,
-      pluginsLength: n.plugins ? n.plugins.length : null
+      pluginsLength: n.plugins ? n.plugins.length : null,
+      prototypeLies: probe(n)
     };
   } catch (error) {
     return { supported: true, error: String(error && error.message ? error.message : error) };

@@ -4,7 +4,7 @@ import { collectFingerprintStability } from "./collect-stability.js";
 import { buildInteractionReport, INTERACTION_PHRASE } from "./collect-interaction.js";
 import { collectNetwork } from "./collect-network.js";
 import { collectSurfaceIndicators } from "./collect-surfaces.js";
-import { collectTells } from "./collect-tells.js";
+import { collectTells, probePrototypeLies } from "./collect-tells.js";
 import { collectWorkers } from "./collect-workers.js";
 import { $ } from "./dom.js";
 import { computeBehavior } from "./runtime.js";
@@ -42,7 +42,7 @@ export async function runChecks(state) {
       page: collectPageData(state),
       browser,
       automation,
-      tells: collectTells(state),
+      tells: attachPrototypeLies(collectTells(state), workers),
       workers,
       fingerprints: stability ? { ...fingerprints, stability } : fingerprints,
       surfaces,
@@ -75,6 +75,18 @@ export async function runChecks(state) {
 
 // Every run, from Submit or from the Run button, carries the completed interaction test, so the
 // test's status line follows the newest run's outcome rather than only the run Submit started.
+function attachPrototypeLies(tells, workers) {
+  const page = tells.prototypeLies?.page || probePrototypeLies(navigator);
+  return {
+    ...tells,
+    prototypeLies: {
+      page,
+      iframe: workers?.iframe?.prototypeLies ?? null,
+      worker: workers?.webWorker?.prototypeLies ?? null
+    }
+  };
+}
+
 function showInteractionStatus(state, text) {
   if (state.interaction.report) $("#challengeStatus").textContent = text;
 }

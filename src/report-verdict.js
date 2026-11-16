@@ -1,4 +1,5 @@
 import { assessBehaviorEvidence } from "../public/behavior-score.js";
+import { prototypeLieMismatches } from "../public/collect-tells.js";
 import { classifyStability } from "../public/fingerprint-stability.js";
 import { validateFingerprintStability } from "../public/generated/validate-fingerprint-stability.js";
 import { validateInteractionReport } from "../public/generated/validate-interaction-report.js";
@@ -46,6 +47,7 @@ export const REASON_IDS = Object.freeze([
   "webdriver_own_property",
   "webdriver_getter_patched",
   "native_function_patched",
+  "prototype_lie_mismatch",
   "document_automation_keys",
   "synthetic_input",
   "input_while_hidden",
@@ -476,6 +478,10 @@ export function scoreRemoteControlTells(client, { isMobileBrowser = false } = {}
   const nativeFunctions = tells.nativeFunctions || {};
   if (nativeFunctions.functionToString === false || nativeFunctions.permissionsQuery === false) {
     penalize(15, "native_function_patched", "medium", "Function.prototype.toString or permissions.query has been replaced by script.", nativeFunctions);
+  }
+  const prototypeLies = prototypeLieMismatches(tells.prototypeLies);
+  if (prototypeLies.length) {
+    penalize(15, "prototype_lie_mismatch", "medium", "Function.prototype.toString or a navigator getter disagrees across the page, an iframe, and a worker.", prototypeLies);
   }
   if (tells.documentAutomationKeys?.length) {
     penalize(30, "document_automation_keys", "high", "Automation driver keys found on document.", tells.documentAutomationKeys);
