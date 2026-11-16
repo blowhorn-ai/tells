@@ -54,7 +54,7 @@
       also what the human page does; there is no separate agent back door.</p>
 
     <section class="panel card card-dispatch">
-      <h2>Two ways to get a report</h2>
+      <h2>Ways to get a report</h2>
       <h3>1. Drive the page</h3>
       <p>Load <a href="https://tells.blowhorn.ai/">tells.blowhorn.ai</a> in the browser you are
         evaluating. The inspection runs on load. The run is finished when the raw report JSON
@@ -100,6 +100,15 @@ const report = JSON.parse(
       <p>The surest way to learn the client payload is to run the page once and read the
         <code>client</code> object out of its report. The collectors that build it live in the
         <a href="https://github.com/layer5io/blowhorn-tells">open source</a> for this site.</p>
+      <h3>3. Compare two saved reports</h3>
+      <p>Download JSON on two runs, then open <a href="/compare/">/compare/</a>. Paste or drop
+        both files. The page diffs the verdict label, score and reasons, each check row's status
+        and summary, and the flag groups the result page already shows. It does not post the files
+        and it does not keep them. If <code>schema_version</code> is missing or the two versions
+        differ, scores are only comparable within one version; overlapping fields are still diffed.
+        A file that is not a Tells report is rejected in plain words. Fields the capture redaction
+        drops (IP addresses, WebRTC candidates, history length, extension probes, fingerprint hashes,
+        GPU strings, font lists) are left out of the diff even when an older file still contains them.</p>
     </section>
 
     <section class="panel card card-plain">
@@ -182,6 +191,7 @@ const report = JSON.parse(
             <ul>
               <li><a href="/#checks">Checks performed</a></li>
               <li><a href="/checks/">What each check means</a></li>
+              <li><a href="/compare/">Compare two reports</a></li>
               <li><a href="/agents/">For AI agents</a></li>
               <li><a href="https://github.com/layer5io/blowhorn-tells">Source code</a></li>
             </ul>

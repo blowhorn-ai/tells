@@ -34,7 +34,11 @@ curl https://tells.blowhorn.ai/api/check
 | `/api/ping` | GET | Latency sample (the page calls it while it collects) |
 | `/api/report` | POST | Full verdict for a client report the page collected |
 
-Check rows and `server.cloudflareBotManagement` have JSON Schemas (draft 2020-12) in `schemas/`; unit tests validate the real output against them.
+Check rows, `server.cloudflareBotManagement` and the in-browser report comparison have JSON Schemas (draft 2020-12) in `schemas/`; unit tests validate the real output against them.
+
+## Compare two saved reports
+
+Open [/compare/](https://tells.blowhorn.ai/compare/) and paste or drop two files from Download JSON. The diff runs in the browser: verdict label, score and reasons, each check row's status and summary, and the flag groups the result page shows. Nothing is posted and nothing is stored. If `schema_version` is missing or the two versions differ, the page warns that scores are only comparable across the same version, and still diffs overlapping fields. A file that is not a Tells report is named as such. IP addresses, WebRTC candidates, history length, extension probe results, fingerprint hashes, GPU vendor and renderer, and font lists are omitted even when an older download still has them.
 
 API routes are rate limited at the Worker edge by route and client IP (30 calls a minute by default).
 
@@ -64,7 +68,7 @@ Service Worker checks need a secure context; `localhost` counts as one in curren
 
 The card variants (`card-paper`, `card-dispatch`, `card-stamp`, `card-field`, `card-plain`) come from the shared stylesheet at `https://blowhorn.ai/assets/brand/cards.css`, which `public/index.html` links rather than copies. The dispatch card is near-black in both themes, so `public/styles.css` gives it the dark token set. The end-to-end tests stub that stylesheet so they never depend on the network.
 
-No two cards that sit next to each other share a variant. The result page's detail panels sit in a grid, one column and two above 900px. Their variants follow the markup order on a four-step cycle (stamp, field, plain, dispatch); adding or moving a panel means re-dealing the cycle from that point. `tests/e2e/card-neighbours.spec.js` checks the rendered layout of `/` and the `/checks/` and `/agents/` pages at 320, 820 and 1280px in both themes. The e2e test server (`tests/e2e/support/worker-server.js`) serves `dir/` as `dir/index.html`, as Workers Assets does. Doc pages with five sections or fewer use each variant once. No card, panel, row, callout or quote draws a stripe on one edge; `tests/e2e/no-edge-stripes.spec.js` checks the computed styles of every card, panel, row, callout, quote and item element on `/`, `/agents/`, `/checks/` and every `/checks/<name>/` page, in both themes.
+No two cards that sit next to each other share a variant. The result page's detail panels sit in a grid, one column and two above 900px. Their variants follow the markup order on a four-step cycle (stamp, field, plain, dispatch); adding or moving a panel means re-dealing the cycle from that point. `tests/e2e/card-neighbours.spec.js` checks the rendered layout of `/`, `/compare/` and the `/checks/` and `/agents/` pages at 320, 820 and 1280px in both themes. The e2e test server (`tests/e2e/support/worker-server.js`) serves `dir/` as `dir/index.html`, as Workers Assets does. Doc pages with five sections or fewer use each variant once. No card, panel, row, callout or quote draws a stripe on one edge; `tests/e2e/no-edge-stripes.spec.js` checks the computed styles of every card, panel, row, callout, quote and item element on `/`, `/compare/`, `/agents/`, `/checks/` and every `/checks/<name>/` page, in both themes.
 
 ## Known-good corpus
 

@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tells.blowhorn.ai/schemas/v1/report-comparison.schema.json",
+  "title": "Report comparison",
+  "description": "Plain-language diff of two downloaded Tells reports. Built in the browser from buildCheckRows and the verdict view. It never includes raw readings the capture redaction drops (IPs, WebRTC candidates, history length, extension probes, fingerprint hashes, GPU strings, font lists).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sides", "versionWarning", "verdict", "checks", "flags"],
+  "properties": {
+    "sides": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "$ref": "#/$defs/side" }
+    },
+    "versionWarning": {
+      "type": ["string", "null"],
+      "description": "Set when schema_version is missing on either report or the two versions differ. Scores are only comparable across the same version. Overlapping fields are still diffed."
+    },
+    "verdict": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["changed", "left", "right", "reasonChanges"],
+      "properties": {
+        "changed": { "type": "boolean" },
+        "left": { "$ref": "#/$defs/verdictSide" },
+        "right": { "$ref": "#/$defs/verdictSide" },
+        "reasonChanges": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/reasonChange" }
+        }
+      }
+    },
+    "checks": {
+      "type": ["array", "null"],
+      "items": { "$ref": "#/$defs/checkDiff" }
+    },
+    "flags": {
+      "type": ["array", "null"],
+      "items": { "$ref": "#/$defs/flagDiff" }
+    }
+  },
+  "$defs": {
+    "side": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "accepted", "error", "schemaVersion"],
+      "properties": {
+        "name": { "enum": ["A", "B"] },
+        "accepted": { "type": "boolean" },
+        "error": { "type": ["string", "null"] },
+        "schemaVersion": { "type": ["string", "null"] }
+      }
+    },
+    "verdictSide": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "score", "classification"],
+      "properties": {
+        "label": { "type": "string", "minLength": 1 },
+        "score": { "type": ["number", "null"] },
+        "classification": { "type": ["string", "null"] }
+      }
+    },
+    "reasonChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "headline", "change", "leftSeverity", "rightSeverity"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "headline": { "type": "string", "minLength": 1 },
+        "change": { "enum": ["added", "removed", "severity"] },
+        "leftSeverity": { "type": ["string", "null"] },
+        "rightSeverity": { "type": ["string", "null"] }
+      }
+    },
+    "checkDiff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "slug", "changed", "left", "right"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "slug": { "type": ["string", "null"] },
+        "changed": { "type": "boolean" },
+        "left": { "$ref": "#/$defs/checkSide" },
+        "right": { "$ref": "#/$defs/checkSide" }
+      }
+    },
+    "checkSide": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "statusLabel", "summary"],
+      "properties": {
+        "status": { "enum": ["pass", "warn", "fail", "na"] },
+        "statusLabel": { "type": "string", "minLength": 1 },
+        "summary": { "type": "string", "minLength": 1 }
+      }
+    },
+    "flagDiff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "label", "changed", "left", "right"],
+      "properties": {
+        "key": { "enum": ["automation", "behavior", "fingerprint"] },
+        "label": { "type": "string", "minLength": 1 },
+        "changed": { "type": "boolean" },
+        "left": { "$ref": "#/$defs/flagSide" },
+        "right": { "$ref": "#/$defs/flagSide" }
+      }
+    },
+    "flagSide": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "statusLabel", "sentence"],
+      "properties": {
+        "status": { "enum": ["pass", "warn", "fail", "na"] },
+        "statusLabel": { "type": "string", "minLength": 1 },
+        "sentence": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

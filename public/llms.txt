@@ -23,6 +23,14 @@
   server-derived check statuses. It is complete when
   /client/interaction/task/completed is true. Before Submit, that element
   holds "No report yet." or a report whose interaction is not completed.
+- Compare two saved reports in the browser (nothing is uploaded):
+  https://tells.blowhorn.ai/compare/
+  Paste or drop two Download JSON files. The page diffs verdict label, score and
+  reasons, check-row status and summary, and the flag groups on the result page.
+  schema_version must match for scores to be comparable; overlapping fields are
+  still diffed. Files that are not Tells reports are rejected. IP addresses,
+  WebRTC candidates, history length, extension probes, fingerprint hashes, GPU
+  strings and font lists are omitted from the diff.
 - The tool: https://tells.blowhorn.ai/
 - Source: https://github.com/layer5io/blowhorn-tells
 

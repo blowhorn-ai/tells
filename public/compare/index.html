@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Compare two downloaded Blowhorn Tells reports in the browser. Nothing is uploaded.">
+  <meta name="theme-color" content="#1E2117" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+  <title>Compare two reports | Blowhorn Tells</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="/assets/fonts/BricolageGrotesque-Variable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/InstrumentSans-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="https://blowhorn.ai/assets/brand/cards.css">
+  <link rel="stylesheet" href="/styles.css">
+  <!-- Google Analytics: the same GA4 property as blowhorn.ai. No consent banner on this tool. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-2ZLYGVE3HN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-2ZLYGVE3HN');
+  </script>
+</head>
+
+<body>
+  <div class="ambient-grid" aria-hidden="true"></div>
+  <a class="skip-link" href="#main">Skip to compare</a>
+  <header class="site-header">
+    <div class="wrap header-bar">
+      <a class="brand" href="https://blowhorn.ai/" aria-label="Blowhorn home">
+        <img class="logo-dark" src="/assets/brand/blowhorn-lockup-horizontal-on-dark.svg" alt="Blowhorn" width="176" height="44">
+        <img class="logo-light" src="/assets/brand/blowhorn-lockup-horizontal.svg" alt="" width="176" height="44">
+      </a>
+      <a class="product-name" href="/" aria-label="Tells, the bot detection test">Tells</a>
+      <nav class="site-nav" aria-label="Blowhorn">
+        <ul>
+          <li><a href="https://blowhorn.ai/">What is Blowhorn</a></li>
+          <li><a href="https://blowhorn.ai/pricing/">Pricing</a></li>
+          <li><a href="https://blowhorn.ai/docs/">Docs</a></li>
+          <li><a href="https://github.com/layer5io/blowhorn-tells" target="_blank" rel="noopener noreferrer">Source</a></li>
+        </ul>
+      </nav>
+      <a class="button-primary site-cta" href="https://blowhorn.ai/download/">Get Blowhorn</a>
+    </div>
+  </header>
+
+  <main id="main" class="wrap doc-page">
+    <p class="eyebrow">Blowhorn Tells</p>
+    <h1>Compare two reports</h1>
+    <p class="lede">Paste or drop two files saved with Download JSON. The diff runs in this browser.
+      Nothing is posted to the server and nothing is stored.</p>
+
+    <form id="compareForm">
+      <section class="panel card card-paper">
+        <h2>The two files</h2>
+        <div class="compare-slots">
+          <div class="compare-slot">
+            <label for="textA">Report A</label>
+            <textarea id="textA" name="reportA" spellcheck="false" placeholder="Paste report JSON"></textarea>
+            <label class="compare-file" for="fileA">Or choose a file
+              <input id="fileA" type="file" accept="application/json,.json">
+            </label>
+          </div>
+          <div class="compare-slot">
+            <label for="textB">Report B</label>
+            <textarea id="textB" name="reportB" spellcheck="false" placeholder="Paste report JSON"></textarea>
+            <label class="compare-file" for="fileB">Or choose a file
+              <input id="fileB" type="file" accept="application/json,.json">
+            </label>
+          </div>
+        </div>
+        <p class="actions">
+          <button class="button-primary" type="submit">Compare</button>
+        </p>
+        <p id="compareStatus" role="status" aria-live="polite"></p>
+      </section>
+    </form>
+
+    <section class="panel card card-dispatch" aria-labelledby="verdictHeading">
+      <h2 id="verdictHeading">Verdict</h2>
+      <p id="versionWarning" class="compare-warning" hidden></p>
+      <div id="verdictDiff"><p class="muted">Label, score and reasons appear here.</p></div>
+    </section>
+
+    <section class="panel card card-stamp" aria-labelledby="checksHeading">
+      <h2 id="checksHeading">Checks</h2>
+      <div id="checkDiff"><p class="muted">Status and summary for each check that differs.</p></div>
+    </section>
+
+    <section class="panel card card-field" aria-labelledby="flagsHeading">
+      <h2 id="flagsHeading">Flags</h2>
+      <div id="flagDiff"><p class="muted">The same flag groups the result page shows on the verdict card.</p></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-panel card card-plain">
+        <div class="footer-top">
+          <div class="footer-brand">
+            <a class="footer-logo" href="https://blowhorn.ai/" aria-label="Blowhorn home">
+              <img class="logo-dark" src="/assets/brand/blowhorn-lockup-horizontal-on-dark.svg" alt="Blowhorn" width="200" height="50">
+              <img class="logo-light" src="/assets/brand/blowhorn-lockup-horizontal.svg" alt="" width="200" height="50">
+            </a>
+            <p class="footer-tagline">Your voice, at full volume.</p>
+            <p class="footer-about">Tells is a free check from the Blowhorn team. It shows what websites can read about your browser.</p>
+          </div>
+        </div>
+        <nav class="footer-cols" aria-label="Footer">
+          <div class="footer-col">
+            <h2 class="footer-title">Tells</h2>
+            <ul>
+              <li><a href="/#checks">Checks performed</a></li>
+              <li><a href="/checks/">What each check means</a></li>
+              <li><a href="/compare/">Compare two reports</a></li>
+              <li><a href="/agents/">For AI agents</a></li>
+              <li><a href="https://github.com/layer5io/blowhorn-tells">Source code</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h2 class="footer-title">Blowhorn</h2>
+            <ul>
+              <li><a href="https://blowhorn.ai/">What is Blowhorn</a></li>
+              <li><a href="https://blowhorn.ai/download/">Download</a></li>
+              <li><a href="https://blowhorn.ai/pricing/">Pricing</a></li>
+              <li><a href="https://blowhorn.ai/docs/">Docs</a></li>
+            </ul>
+          </div>
+        </nav>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Layer5, Inc.</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/compare-page.js" type="module"></script>
+</body>
+
+</html>

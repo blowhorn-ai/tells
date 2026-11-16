@@ -8,7 +8,7 @@ import { stubSharedCards } from "./support/cards.js";
 // wider than 1px, or a thin ::before/::after bar. 1px hairlines (row dividers, a header's bottom
 // edge) are allowed.
 
-const PAGES = ["/", "/checks/", "/agents/", ...readdirSync(new URL("../../public/checks/", import.meta.url), { withFileTypes: true })
+const PAGES = ["/", "/compare/", "/checks/", "/agents/", ...readdirSync(new URL("../../public/checks/", import.meta.url), { withFileTypes: true })
   .filter((entry) => entry.isDirectory())
   .map((entry) => `/checks/${entry.name}/`)];
 

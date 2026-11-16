@@ -1602,3 +1602,63 @@ input:focus {
   font-size: 0.78rem;
   font-weight: 600;
 }
+
+.compare-slots {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 720px) {
+  .compare-slots {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.compare-slot label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.compare-slot textarea {
+  width: 100%;
+  min-height: 160px;
+  resize: vertical;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-deep);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  padding: 10px 12px;
+}
+
+.compare-slot.is-dragover textarea {
+  border-color: var(--line-strong);
+}
+
+.compare-file {
+  margin-top: 8px;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.compare-file input {
+  display: block;
+  margin-top: 4px;
+}
+
+.compare-warning {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+}
+
+#verdictDiff h3,
+#checkDiff h3,
+#flagDiff h3 {
+  margin: 16px 0 8px;
+  font-size: 1rem;
+}

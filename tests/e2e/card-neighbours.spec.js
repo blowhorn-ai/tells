@@ -7,7 +7,7 @@ import { stubSharedCards } from "./support/cards.js";
 // that overlaps it horizontally, its neighbour to the right the nearest card beside it that
 // overlaps it vertically. Cards nested in one another are not neighbours.
 
-const PAGES = ["/checks/", "/checks/browser-data/", "/checks/interaction/", "/checks/platforms/", "/agents/"];
+const PAGES = ["/checks/", "/checks/browser-data/", "/checks/interaction/", "/checks/platforms/", "/agents/", "/compare/"];
 const WIDTHS = [320, 820, 1280];
 
 test.beforeEach(async ({ page }) => stubSharedCards(page));
@@ -75,7 +75,7 @@ for (const colorScheme of ["dark", "light"]) {
 // Beyond neighbours: a doc page with no more sections than there are card variants (five; glass is
 // reserved for floating surfaces) uses each variant once, so no two of its sections look alike even
 // far apart. Longer pages can only keep neighbours apart. The site footer is chrome, not a section.
-const DOC_PAGES = ["/checks/", "/agents/", ...readdirSync(new URL("../../public/checks/", import.meta.url), { withFileTypes: true })
+const DOC_PAGES = ["/checks/", "/agents/", "/compare/", ...readdirSync(new URL("../../public/checks/", import.meta.url), { withFileTypes: true })
   .filter((entry) => entry.isDirectory())
   .map((entry) => `/checks/${entry.name}/`)];
 
