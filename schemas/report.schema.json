@@ -1,0 +1,420 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tells.blowhorn.ai/schemas/v1/report.schema.json",
+  "title": "POST /api/report response",
+  "description": "The success body of POST /api/report, which Download JSON and Copy JSON serialize unchanged. schema_version 1 is the v1 schema family. Error bodies ({ ok: false, error }) are not this document. Check rows (schemas/check-row.schema.json) are built on the page from this body and are not a field of it. client echoes the posted readings, so keys beyond the ones named here are allowed; interaction and fingerprints.stability, when present, are the server-derived documents.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "ok", "receivedAt", "verdict", "server", "client", "detections"],
+  "properties": {
+    "schema_version": { "$ref": "#/$defs/schemaVersion" },
+    "ok": { "const": true },
+    "receivedAt": { "$ref": "#/$defs/receivedAt" },
+    "verdict": { "$ref": "#/$defs/verdict" },
+    "server": { "$ref": "#/$defs/server" },
+    "client": {
+      "description": "Posted client readings after the Worker replaces behavior, interaction and fingerprint stability with what it derived. null when the body was empty.",
+      "type": ["object", "null"],
+      "additionalProperties": true,
+      "required": ["consistency"],
+      "properties": {
+        "consistency": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "interaction": { "$ref": "https://tells.blowhorn.ai/schemas/v1/interaction-report.schema.json" },
+        "fingerprints": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "stability": { "$ref": "https://tells.blowhorn.ai/schemas/v1/fingerprint-stability.schema.json" }
+          }
+        }
+      }
+    },
+    "detections": { "$ref": "#/$defs/detections" }
+  },
+  "$defs": {
+    "schemaVersion": { "const": 1 },
+    "receivedAt": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$" },
+    "verdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["score", "classification", "risk", "reasons"],
+      "properties": {
+        "score": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "classification": { "enum": ["likely_human", "suspicious", "likely_bot"] },
+        "risk": { "enum": ["low", "medium", "high"] },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "severity", "points", "message"],
+            "properties": {
+              "id": {
+                "enum": [
+                  "server_missing_ua",
+                  "missing_user_agent",
+                  "automation_user_agent",
+                  "missing_accept",
+                  "missing_accept_language",
+                  "missing_client_hints",
+                  "body_without_content_type",
+                  "library_user_agent",
+                  "proxy_headers",
+                  "datacenter_asn_heuristic",
+                  "ip_tor",
+                  "ip_proxy",
+                  "ip_vpn",
+                  "ip_datacenter",
+                  "ip_abuser",
+                  "ip_crawler",
+                  "ipqs_high_fraud_score",
+                  "managed_bot_score_low",
+                  "managed_bot_score_borderline",
+                  "cloudflare_verified_bot",
+                  "navigator_webdriver",
+                  "client_headless_user_agent",
+                  "automation_globals",
+                  "cdp_serialization_signal",
+                  "webdriver_own_property",
+                  "webdriver_getter_patched",
+                  "native_function_patched",
+                  "document_automation_keys",
+                  "synthetic_input",
+                  "input_while_hidden",
+                  "input_without_focus",
+                  "notification_permission_contradiction",
+                  "zero_size_window",
+                  "ua_platform_mismatch",
+                  "worker_platform_mismatch",
+                  "iframe_platform_mismatch",
+                  "timezone_mismatch",
+                  "screen_viewport_impossible",
+                  "request_client_ua_mismatch",
+                  "accept_language_mismatch",
+                  "client_hint_platform_mismatch",
+                  "client_hint_mobile_mismatch",
+                  "client_hint_high_entropy_mismatch",
+                  "ua_data_high_entropy_mismatch",
+                  "mobile_touch_mismatch",
+                  "notification_permission_default_state",
+                  "empty_plugins_chromium",
+                  "prototype_getter_not_native",
+                  "plugin_reference_mismatch",
+                  "plugin_item_overflow",
+                  "webgl_missing",
+                  "canvas_error",
+                  "fingerprint_context_inconsistent",
+                  "fingerprint_randomized",
+                  "webrtc_public_ip_mismatch",
+                  "browser_edge_latency_gap",
+                  "performance_memory_anomaly",
+                  "behavior_score_low",
+                  "behavior_score_borderline",
+                  "behavior_evidence_invalid",
+                  "interaction_report_invalid",
+                  "int_trusted",
+                  "int_click_chain",
+                  "int_click_detail",
+                  "int_screen_coords",
+                  "int_coalesced",
+                  "int_premove",
+                  "int_centre",
+                  "int_press",
+                  "int_key_chain",
+                  "int_value_source",
+                  "int_key_rhythm",
+                  "int_dwell",
+                  "int_task_speed",
+                  "int_focus",
+                  "int_visibility"
+                ]
+              },
+              "severity": { "enum": ["high", "medium", "low"] },
+              "points": { "type": "integer", "minimum": 0 },
+              "message": { "type": "string", "minLength": 1 },
+              "data": true
+            }
+          }
+        }
+      }
+    },
+    "server": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ip",
+        "url",
+        "method",
+        "userAgent",
+        "headerNames",
+        "headers",
+        "cf",
+        "proxyHeaders",
+        "performanceMemory",
+        "datacenterHeuristic",
+        "headerSignals",
+        "ipIntel",
+        "cloudflareBotManagement"
+      ],
+      "properties": {
+        "ip": { "type": "string" },
+        "url": { "type": "string", "minLength": 1 },
+        "method": { "type": "string", "minLength": 1 },
+        "userAgent": { "type": "string" },
+        "headerNames": { "type": "array", "items": { "type": "string" } },
+        "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+        "cf": {
+          "description": "JSON-safe request.cf fields. Cloudflare may add keys beyond the ones listed.",
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "asn": true,
+            "asOrganization": { "type": "string" },
+            "colo": { "type": "string" },
+            "country": { "type": "string" },
+            "city": { "type": "string" },
+            "region": { "type": "string" },
+            "regionCode": { "type": "string" },
+            "postalCode": { "type": "string" },
+            "continent": { "type": "string" },
+            "timezone": { "type": "string" },
+            "latitude": true,
+            "longitude": true,
+            "clientTcpRtt": { "type": "number" },
+            "clientQuicRtt": { "type": "number" },
+            "httpProtocol": { "type": "string" },
+            "tlsVersion": { "type": "string" },
+            "tlsCipher": { "type": "string" },
+            "tlsClientRandom": { "type": "string" },
+            "edgeRequestKeepAliveStatus": true,
+            "requestPriority": { "type": "string" },
+            "botManagement": { "type": "object" }
+          }
+        },
+        "proxyHeaders": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "forwarded": { "type": "string" },
+            "forwarded-for": { "type": "string" },
+            "via": { "type": "string" },
+            "proxy-connection": { "type": "string" },
+            "x-forwarded-for": { "type": "string" },
+            "x-forwarded-host": { "type": "string" },
+            "x-forwarded-proto": { "type": "string" },
+            "x-real-ip": { "type": "string" },
+            "x-client-ip": { "type": "string" },
+            "true-client-ip": { "type": "string" },
+            "client-ip": { "type": "string" },
+            "proxy-authenticate": { "type": "string" },
+            "proxy-authorization": { "type": "string" }
+          }
+        },
+        "performanceMemory": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "required": ["usedJSHeapSize", "totalJSHeapSize", "jsHeapSizeLimit", "usedRatio"],
+          "properties": {
+            "usedJSHeapSize": { "type": ["number", "null"] },
+            "totalJSHeapSize": { "type": ["number", "null"] },
+            "jsHeapSizeLimit": { "type": ["number", "null"] },
+            "usedRatio": { "type": ["number", "null"] }
+          }
+        },
+        "datacenterHeuristic": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["isLikelyDatacenter", "organization", "matchedPattern"],
+          "properties": {
+            "isLikelyDatacenter": { "type": "boolean" },
+            "organization": { "type": ["string", "null"] },
+            "matchedPattern": { "type": ["string", "null"] }
+          }
+        },
+        "headerSignals": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["reasons"],
+          "properties": {
+            "reasons": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "severity", "message"],
+                "properties": {
+                  "id": {
+                    "enum": [
+                      "missing_user_agent",
+                      "automation_user_agent",
+                      "missing_accept",
+                      "missing_accept_language",
+                      "missing_client_hints",
+                      "body_without_content_type",
+                      "library_user_agent"
+                    ]
+                  },
+                  "severity": { "enum": ["high", "medium", "low"] },
+                  "message": { "type": "string", "minLength": 1 }
+                }
+              }
+            }
+          }
+        },
+        "ipIntel": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["provider", "enabled", "reason"],
+              "properties": {
+                "provider": { "const": "none" },
+                "enabled": { "const": false },
+                "reason": { "type": "string", "minLength": 1 }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["provider", "enabled", "error", "normalized"],
+              "properties": {
+                "provider": { "type": "string", "minLength": 1 },
+                "enabled": { "const": true },
+                "error": { "type": "string", "minLength": 1 },
+                "normalized": { "type": "null" }
+              }
+            },
+            { "$ref": "#/$defs/ipapiIntel" },
+            { "$ref": "#/$defs/ipinfoIntel" },
+            { "$ref": "#/$defs/ipqsIntel" }
+          ]
+        },
+        "cloudflareBotManagement": { "$ref": "https://tells.blowhorn.ai/schemas/v1/cloudflare-bot-management.schema.json" }
+      }
+    },
+    "detections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "status", "notes"],
+        "properties": {
+          "name": {
+            "enum": [
+              "Request profile",
+              "Proxy indicators",
+              "Datacenter pattern",
+              "VPN / proxy / Tor intelligence",
+              "Managed bot score",
+              "TLS fingerprint",
+              "Browser data",
+              "Browser fingerprint",
+              "Fingerprint surfaces",
+              "Performance memory pings",
+              "Worker consistency",
+              "WebRTC network clues",
+              "Latency",
+              "Remote-control tells",
+              "Behavioural classification",
+              "Interaction"
+            ]
+          },
+          "status": { "const": "checked" },
+          "notes": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "ipapiIntel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "enabled", "status", "elapsedMs", "raw", "normalized"],
+      "properties": {
+        "provider": { "const": "ipapi.is" },
+        "enabled": { "const": true },
+        "status": { "type": "integer" },
+        "elapsedMs": { "type": "integer", "minimum": 0 },
+        "raw": { "type": "object" },
+        "normalized": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["isDatacenter", "isProxy", "isVpn", "isTor", "isCrawler", "isAbuser", "isMobile", "providerName", "companyType", "asnType", "asn", "country", "timezone"],
+          "properties": {
+            "isDatacenter": { "type": "boolean" },
+            "isProxy": { "type": "boolean" },
+            "isVpn": { "type": "boolean" },
+            "isTor": { "type": "boolean" },
+            "isCrawler": { "type": "boolean" },
+            "isAbuser": { "type": "boolean" },
+            "isMobile": { "type": "boolean" },
+            "providerName": { "type": ["string", "null"] },
+            "companyType": { "type": ["string", "null"] },
+            "asnType": { "type": ["string", "null"] },
+            "asn": true,
+            "country": { "type": ["string", "null"] },
+            "timezone": { "type": ["string", "null"] }
+          }
+        }
+      }
+    },
+    "ipinfoIntel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "enabled", "status", "elapsedMs", "raw", "normalized"],
+      "properties": {
+        "provider": { "const": "ipinfo" },
+        "enabled": { "const": true },
+        "status": { "type": "integer" },
+        "elapsedMs": { "type": "integer", "minimum": 0 },
+        "raw": { "type": "object" },
+        "normalized": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["isDatacenter", "isProxy", "isVpn", "isTor", "isRelay", "providerName", "confidence", "firstSeen", "lastSeen"],
+          "properties": {
+            "isDatacenter": { "type": "boolean" },
+            "isProxy": { "type": "boolean" },
+            "isVpn": { "type": "boolean" },
+            "isTor": { "type": "boolean" },
+            "isRelay": { "type": "boolean" },
+            "providerName": { "type": ["string", "null"] },
+            "confidence": true,
+            "firstSeen": { "type": ["string", "null"] },
+            "lastSeen": { "type": ["string", "null"] }
+          }
+        }
+      }
+    },
+    "ipqsIntel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "enabled", "status", "elapsedMs", "raw", "normalized"],
+      "properties": {
+        "provider": { "const": "ipqualityscore" },
+        "enabled": { "const": true },
+        "status": { "type": "integer" },
+        "elapsedMs": { "type": "integer", "minimum": 0 },
+        "raw": { "type": "object" },
+        "normalized": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["isDatacenter", "isProxy", "isVpn", "isTor", "isCrawler", "isAbuser", "fraudScore", "providerName", "connectionType", "country"],
+          "properties": {
+            "isDatacenter": { "type": "boolean" },
+            "isProxy": { "type": "boolean" },
+            "isVpn": { "type": "boolean" },
+            "isTor": { "type": "boolean" },
+            "isCrawler": { "type": "boolean" },
+            "isAbuser": { "type": "boolean" },
+            "fraudScore": true,
+            "providerName": { "type": ["string", "null"] },
+            "connectionType": { "type": ["string", "null"] },
+            "country": { "type": ["string", "null"] }
+          }
+        }
+      }
+    }
+  }
+}

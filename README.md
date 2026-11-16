@@ -34,7 +34,7 @@ curl https://tells.blowhorn.ai/api/check
 | `/api/ping` | GET | Latency sample (the page calls it while it collects) |
 | `/api/report` | POST | Full verdict for a client report the page collected |
 
-Check rows and `server.cloudflareBotManagement` have JSON Schemas (draft 2020-12) in `schemas/`; unit tests validate the real output against them.
+`GET /api/check` and `POST /api/report` success bodies include `schema_version` (integer `1`). The report schema is `schemas/report.schema.json` and the check schema is `schemas/check.schema.json` (draft 2020-12, `$id` under `https://tells.blowhorn.ai/schemas/v1/`). The check body is the report body without `client` and `detections`. Download JSON and Copy JSON serialize that response, including `schema_version`. Check rows, `server.cloudflareBotManagement`, the interaction report and fingerprint stability have their own schemas in `schemas/`; unit tests validate the real Worker output against them.
 
 API routes are rate limited at the Worker edge by route and client IP (30 calls a minute by default).
 
