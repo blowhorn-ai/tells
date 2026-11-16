@@ -217,6 +217,14 @@ describe("check catalog", () => {
     const page = readFileSync(new URL("../public/checks/changelog/index.html", import.meta.url), "utf8");
     expect(page).toContain(catalog.catalog_version);
     expect(page).toContain("1.0.0");
-    expect(page).not.toContain("v0.3.3");
+    expect(page).toContain("v0.3.3");
+    expect(page).not.toContain("not yet in a release");
+    for (const id of ["fingerprint-protection", "behavioural-classification", "interaction"]) {
+      expect(catalog.checks.find((check) => check.id === id).since).toBe("v0.3.3");
+    }
+    const byId = Object.fromEntries(catalog.checks.flatMap((check) => check.reasons).map((reason) => [reason.id, reason.since]));
+    for (const id of ["fingerprint_context_inconsistent", "fingerprint_randomized", "behavior_evidence_invalid", "int_focus", "int_visibility"]) {
+      expect(byId[id]).toBe("v0.3.3");
+    }
   });
 });

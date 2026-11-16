@@ -409,8 +409,8 @@
       "id": "fingerprint-protection",
       "name": "Fingerprint protection",
       "group": "fingerprint",
-      "since": "master",
-      "note": "Added on master by the fingerprint-protection work (#44, #46). No release version is assigned to that work.",
+      "since": "v0.3.3",
+      "note": "Added in v0.3.3 by the fingerprint-protection work (#44, #46).",
       "reads": [
         "Canvas: a small solid-colour square, read three times in the page, once in an iframe and once in a Web Worker. An unprotected browser returns exactly the colour that was drawn.",
         "WebGL: the graphics vendor, renderer and limits, read the same way.",
@@ -429,13 +429,13 @@
           "id": "fingerprint_context_inconsistent",
           "points": 15,
           "severity": "medium",
-          "since": "master"
+          "since": "v0.3.3"
         },
         {
           "id": "fingerprint_randomized",
           "points": 0,
           "severity": "low",
-          "since": "master",
+          "since": "v0.3.3",
           "affects_row": false,
           "note": "Scored at 0 points and severity low. It does not change the check row. Privacy browsers randomize too."
         }
@@ -659,8 +659,8 @@
       "id": "behavioural-classification",
       "name": "Behavioural classification",
       "group": "behavior",
-      "since": "master",
-      "note": "The row shipped in v0.2.0. behavior_evidence_invalid was added on master when the Worker started deriving the behaviour score (#35, #38).",
+      "since": "v0.3.3",
+      "note": "The row shipped in v0.2.0. behavior_evidence_invalid was added in v0.3.3 when the Worker started deriving the behaviour score (#35, #38).",
       "reads": [
         "Pointer, keyboard, scroll, focus and visibility events and their timing during the visit",
         "The activity from the interaction test, when taken"
@@ -688,7 +688,7 @@
           "id": "behavior_evidence_invalid",
           "points": 25,
           "severity": "high",
-          "since": "master"
+          "since": "v0.3.3"
         }
       ],
       "slug": "behavioural-classification",
@@ -698,8 +698,8 @@
       "id": "interaction",
       "name": "Interaction",
       "group": "behavior",
-      "since": "master",
-      "note": "The interaction row shipped in v0.3.0 with 13 checks. int_focus and int_visibility were added on master (#19, #40). While the checks are uncalibrated, a raw fail scores medium at 3 points and a raw warn scores low at 1 point, so the row warns and does not fail.",
+      "since": "v0.3.3",
+      "note": "The interaction row shipped in v0.3.0 with 13 checks. int_focus and int_visibility were added in v0.3.3 (#19, #40). While the checks are uncalibrated, a raw fail scores medium at 3 points and a raw warn scores low at 1 point, so the row warns and does not fail.",
       "reads": [
         "The order of press and release events on the Start and Submit buttons",
         "Whether each button was pressed with the pointer, or with Enter or Space from the keyboard. A keyboard press has no pointer position, so the pointer checks are not judged for it",
@@ -942,7 +942,7 @@
         },
         {
           "id": "int_focus",
-          "since": "master",
+          "since": "v0.3.3",
           "provisional": true,
           "outcomes": [
             {
@@ -959,7 +959,7 @@
         },
         {
           "id": "int_visibility",
-          "since": "master",
+          "since": "v0.3.3",
           "provisional": true,
           "outcomes": [
             {
