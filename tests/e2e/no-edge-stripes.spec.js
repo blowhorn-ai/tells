@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { readdirSync } from "node:fs";
+import { stripePages } from "./support/doc-pages.js";
 import { stubSharedCards } from "./support/cards.js";
 
 // Brand rule: no card, panel, row, callout or quote draws a coloured stripe on one edge. The shared
@@ -8,9 +8,7 @@ import { stubSharedCards } from "./support/cards.js";
 // wider than 1px, or a thin ::before/::after bar. 1px hairlines (row dividers, a header's bottom
 // edge) are allowed.
 
-const PAGES = ["/", "/compare/", "/checks/", "/agents/", ...readdirSync(new URL("../../public/checks/", import.meta.url), { withFileTypes: true })
-  .filter((entry) => entry.isDirectory())
-  .map((entry) => `/checks/${entry.name}/`)];
+const PAGES = stripePages();
 
 test.beforeEach(async ({ page }) => stubSharedCards(page));
 

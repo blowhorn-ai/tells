@@ -19,6 +19,12 @@
 - /api/check and POST /api/report success bodies include schema_version 1.
   The report schema is schemas/report.schema.json and the check schema is
   schemas/check.schema.json (draft 2020-12). Download JSON is that body.
+- Methodology: https://tells.blowhorn.ai/methodology/
+  The 0-100 score, the pass, warn, and fail verdict, and when two scores
+  can be compared. Scoring happens on the server. schema_version is on
+  /api/check and POST /api/report success bodies. The check catalog has
+  catalog_version and a changelog. Scores are only comparable across the
+  same schema_version, and across the same catalog when citing a check.
 - What each check means: https://tells.blowhorn.ai/checks/
   (one page per check: what it reads, how its result is decided, why it
   matters, and where it matters most.)

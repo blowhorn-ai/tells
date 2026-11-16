@@ -1571,7 +1571,7 @@ input:focus {
 }
 
 
-/* Documentation pages (agents guide, check guide): a narrower reading column. */
+/* Documentation pages (methodology, agents guide, check guide): a narrower reading column. */
 .doc-page {
   width: min(100vw - 32px, 880px);
   margin: 40px auto 8px;
