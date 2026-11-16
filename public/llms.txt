@@ -17,7 +17,7 @@
   (one page per check: what it reads, how its result is decided, why it
   matters, and where it matters most.)
 - Open check catalog, catalog_version 1.0.0:
-  https://github.com/layer5io/blowhorn-tells/blob/master/schemas/check-catalog.json
+  https://github.com/blowhorn-ai/tells/blob/master/schemas/check-catalog.json
   (schema schemas/check-catalog.schema.json). Every check row and every
   scored reason, including not-available rows and the 0-point
   fingerprint_randomized reason. Changelog:
@@ -41,7 +41,7 @@
   WebRTC candidates, history length, extension probes, fingerprint hashes, GPU
   strings and font lists are omitted from the diff.
 - The tool: https://tells.blowhorn.ai/
-- Source: https://github.com/layer5io/blowhorn-tells
+- Source: https://github.com/blowhorn-ai/tells
 
 ## Rules in one line
 
