@@ -1,0 +1,24 @@
+# Per-repo no-mistakes config for the public blowhorn-ai/tells repository.
+#
+# The gate itself is local (git remote "no-mistakes"). Pipeline agents on
+# Bastion use the machine's no-mistakes config: Grok CLI, model grok-4.7, on
+# the flat subscription. Do not point this gate at an API key, usage billing,
+# or the Claude CLI.
+#
+# Tells already has GitHub Actions CI in .github/workflows/ci.yml (pnpm check,
+# pnpm test, and pnpm test:e2e). Do not run `no-mistakes ci-workflow` here: it
+# would overwrite that file. The gate CI step should watch the existing
+# "CI / test" check on blowhorn-ai/tells. Do not add a second workflow, and do
+# not enable these commands on a private fork's CI minutes.
+
+commands:
+  lint: export PATH="$HOME/.local/bin:$PATH" && corepack enable && pnpm check
+  test: export PATH="$HOME/.local/bin:$PATH" && corepack enable && pnpm test
+
+test:
+  instructions: |
+    Run the unit suite with `pnpm test` (vitest). End-to-end Playwright
+    coverage stays in the existing GitHub Actions CI job on blowhorn-ai/tells
+    (`pnpm test:e2e` in .github/workflows/ci.yml). Do not add a second GitHub
+    workflow. Do not change scoring or add catalog_version to /api/report.
+    Never log real IPs or locations.
