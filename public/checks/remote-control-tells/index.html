@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="What the Remote-control tells check reads, how Pass, Warning, Fail and Not available are decided, and the points it can subtract. Catalog 1.0.1.">
+  <meta name="description" content="What the Remote-control tells check reads, how Pass, Warning, Fail and Not available are decided, and the points it can subtract. Catalog 1.0.2.">
   <meta name="theme-color" content="#1E2117" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
   <title>Remote-control tells check | Blowhorn Tells</title>
@@ -48,7 +48,7 @@
   <main id="main" class="wrap doc-page">
     <p class="eyebrow"><a href="/checks/">Check guide</a> · Automation flags</p>
     <h1>Remote-control tells</h1>
-    <p class="lede">Group: automation. Since master. Catalog 1.0.1.</p>
+    <p class="lede">Group: automation. Since master. Catalog 1.0.2.</p>
     <section class="panel card card-field">
       <h2>What Tells reads</h2>
       <ul>
@@ -56,7 +56,7 @@
           <li>A CDP serialization probe (a known side channel of the DevTools protocol)</li>
           <li>Whether the webdriver getter is native, and whether the property was redefined to hide</li>
           <li>Whether everyday native functions (Function.prototype.toString, permissions.query) have been replaced by script</li>
-          <li>Whether Function.prototype.toString and the navigator.webdriver, languages, and plugins getters agree across the page, a same-origin iframe, and a Web Worker</li>
+          <li>Whether Function.prototype.toString and the navigator.webdriver, languages, and plugins getters agree across the page, a same-origin iframe, a Web Worker, and a Service Worker</li>
           <li>Input event trust: scripted events anywhere on the page, the interaction test's typing and clicks included, and events while the document is hidden or unfocused</li>
           <li>Impossible window geometry (a zero outer size)</li>
       </ul>
@@ -81,7 +81,7 @@
           <li><code>webdriver_own_property</code>: high, 25 points. since v0.2.0</li>
           <li><code>webdriver_getter_patched</code>: high, 25 points. since v0.2.0</li>
           <li><code>native_function_patched</code>: medium, 15 points. since v0.2.0</li>
-          <li><code>prototype_lie_mismatch</code>: medium, 15 points. since master. Scores only when the page, iframe, and Worker disagree. 15 points, medium, same weight as native_function_patched, and it does not replace that reason.</li>
+          <li><code>prototype_lie_mismatch</code>: medium, 15 points. since master. Scores only when at least two contexts that produced a reading disagree. Contexts are the page, a same-origin iframe, a Web Worker, and a Service Worker. A missing or failed Service Worker reading is skipped. 15 points, medium, same weight as native_function_patched, and it does not replace that reason.</li>
           <li><code>synthetic_input</code>: high, 30 points. since v0.2.0</li>
           <li><code>input_while_hidden</code>: high, 25 points. since v0.2.0</li>
           <li><code>input_without_focus</code>: medium, 12 points. since v0.2.0</li>
@@ -91,7 +91,7 @@
 
     <section class="panel card card-paper">
       <h2>Note</h2>
-      <p>The row shipped in v0.2.0. prototype_lie_mismatch was added on master: Function.prototype.toString and the navigator.webdriver, languages, and plugins getters are read in the page, a same-origin iframe, and a Web Worker, and a disagreement is scored. A patch that looks the same in every context keeps its existing reason and points.</p>
+      <p>The row shipped in v0.2.0. prototype_lie_mismatch was added on master: Function.prototype.toString and the navigator.webdriver, languages, and plugins getters are read in the page, a same-origin iframe, a Web Worker, and a Service Worker, and a disagreement is scored. A missing or failed Service Worker registration is skipped, the same as a null plugins reading. A patch that looks the same in every context keeps its existing reason and points.</p>
     </section>
   </main>
 

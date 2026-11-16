@@ -100,7 +100,8 @@ async function collectServiceWorker() {
   }
   try {
     const registration = await promiseWithTimeout(
-      navigator.serviceWorker.register("/sw-detector.js", { scope: "/" }),
+      // type module so the worker can import probePrototypeLies instead of copying it.
+      navigator.serviceWorker.register("/sw-detector.js", { scope: "/", type: "module" }),
       2500,
       "Service Worker registration timeout"
     );

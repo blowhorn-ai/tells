@@ -82,7 +82,8 @@ function attachPrototypeLies(tells, workers) {
     prototypeLies: {
       page,
       iframe: workers?.iframe?.prototypeLies ?? null,
-      worker: workers?.webWorker?.prototypeLies ?? null
+      worker: workers?.webWorker?.prototypeLies ?? null,
+      serviceWorker: workers?.serviceWorker?.prototypeLies ?? null
     }
   };
 }

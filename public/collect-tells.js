@@ -16,8 +16,8 @@ export function collectTells(state) {
       functionToString: isNative(Function.prototype.toString),
       permissionsQuery: navigator.permissions?.query ? isNative(navigator.permissions.query) : null
     },
-    // Page half of the cross-context probe. The iframe and Worker readings are attached
-    // after collectWorkers, because those realms are not available synchronously.
+    // Page half of the cross-context probe. The iframe, Web Worker, and Service Worker
+    // readings are attached after collectWorkers, because those realms are not available synchronously.
     prototypeLies: { page: probePrototypeLies(navigator) },
     documentAutomationKeys: matchAutomationGlobals(Object.keys(document)),
     chromeMajor: chromeMajor(navigator.userAgent),
@@ -25,10 +25,11 @@ export function collectTells(state) {
   };
 }
 
-// Documented first slice of CreepJS-style lie depth. Each context runs this function in its
-// own realm, so a hooked Function.prototype.toString on the page cannot vouch for the others.
+// Documented slice of CreepJS-style lie depth. The page, iframe, and Web Worker each run this
+// function in their own realm (the iframe and Worker evaluate its source). The Service Worker
+// imports it. A hooked Function.prototype.toString on the page cannot vouch for the others.
 // Getter surfaces: navigator.webdriver, navigator.languages, navigator.plugins.
-// plugins is absent in a Worker (null) and is compared only where two contexts both read it.
+// plugins is absent in a Worker and a Service Worker (null) and is compared only where two contexts both read it.
 export const PROTOTYPE_LIE_GETTERS = Object.freeze(["webdriver", "languages", "plugins"]);
 
 export function probePrototypeLies(nav) {
@@ -70,10 +71,12 @@ export function prototypeLieProbeSource() {
   return `(${probePrototypeLies.toString()})`;
 }
 
-const PROTOTYPE_LIE_CONTEXTS = ["page", "iframe", "worker"];
+const PROTOTYPE_LIE_CONTEXTS = ["page", "iframe", "worker", "serviceWorker"];
 
 // A lie here is a disagreement, not a uniform patch. A function that is patched in every
 // context is already scored by native_function_patched or prototype_getter_not_native.
+// A context that produced no reading (a failed Service Worker registration, a null plugins
+// getter) is skipped. At least two readings have to disagree.
 export function prototypeLieMismatches(probes) {
   if (!probes || typeof probes !== "object") return [];
   const contexts = {};

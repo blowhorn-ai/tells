@@ -481,7 +481,7 @@ export function scoreRemoteControlTells(client, { isMobileBrowser = false } = {}
   }
   const prototypeLies = prototypeLieMismatches(tells.prototypeLies);
   if (prototypeLies.length) {
-    penalize(15, "prototype_lie_mismatch", "medium", "Function.prototype.toString or a navigator getter disagrees across the page, an iframe, and a worker.", prototypeLies);
+    penalize(15, "prototype_lie_mismatch", "medium", "Function.prototype.toString or a navigator getter disagrees across the page, an iframe, a worker, and a service worker.", prototypeLies);
   }
   if (tells.documentAutomationKeys?.length) {
     penalize(30, "document_automation_keys", "high", "Automation driver keys found on document.", tells.documentAutomationKeys);

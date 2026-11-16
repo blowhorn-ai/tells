@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   probePrototypeLies,
@@ -123,5 +124,81 @@ describe("prototype lie mismatches", () => {
       iframe: { error: "blocked" },
       worker: null
     })).toEqual([]);
+  });
+
+  it("stays quiet for a clean page, iframe, worker, and service worker, including workers with no plugins", () => {
+    const page = cleanProbe();
+    const iframe = cleanProbe();
+    const worker = realm({ getters: { webdriver: true, languages: true } });
+    const serviceWorker = realm({ getters: { webdriver: true, languages: true } });
+    expect(prototypeLieMismatches({ page, iframe, worker, serviceWorker })).toEqual([]);
+    expect(reasonIds({ ...cleanTells, prototypeLies: { page, iframe, worker, serviceWorker } })).toEqual([]);
+  });
+
+  it("flags a toString that is native everywhere except the service worker", () => {
+    const page = cleanProbe();
+    const iframe = cleanProbe();
+    const worker = realm({ getters: { webdriver: true, languages: true } });
+    const serviceWorker = realm({ toStringNative: false, getters: { webdriver: true, languages: true } });
+    expect(prototypeLieMismatches({ page, iframe, worker, serviceWorker })).toEqual([{
+      surface: "Function.prototype.toString",
+      values: { page: true, iframe: true, worker: true, serviceWorker: false }
+    }]);
+    const scored = scoreReport({
+      server: { userAgent: "Mozilla/5.0" },
+      client: {
+        browser: { userAgent: "Mozilla/5.0", plugins: [{}], webdriver: false },
+        tells: { ...cleanTells, prototypeLies: { page, iframe, worker, serviceWorker } }
+      }
+    });
+    const reason = scored.reasons.find((item) => item.id === "prototype_lie_mismatch");
+    expect(reason).toMatchObject({
+      points: 15,
+      severity: "medium",
+      message: "Function.prototype.toString or a navigator getter disagrees across the page, an iframe, a worker, and a service worker."
+    });
+    expect(scored.reasons.map((item) => item.id)).not.toContain("native_function_patched");
+  });
+
+  it("does not treat a missing or failed service worker as a lie", () => {
+    const page = cleanProbe();
+    const iframe = cleanProbe();
+    const worker = realm({ getters: { webdriver: true, languages: true } });
+    for (const serviceWorker of [null, undefined, { error: "Service Worker registration timeout" }, { supported: false }]) {
+      expect(prototypeLieMismatches({ page, iframe, worker, serviceWorker })).toEqual([]);
+    }
+    const spoofedIframe = realm({ toStringNative: false, getters: cleanGetters });
+    expect(prototypeLieMismatches({
+      page,
+      iframe: spoofedIframe,
+      worker,
+      serviceWorker: { error: "Service Worker activation timeout" }
+    })).toEqual([{
+      surface: "Function.prototype.toString",
+      values: { page: true, iframe: false, worker: true }
+    }]);
+  });
+
+  it("keeps a uniform patch on the existing reason when the service worker matches", () => {
+    const patched = realm({ toStringNative: false, getters: { webdriver: false, languages: false, plugins: false } });
+    const workerPatched = realm({ toStringNative: false, getters: { webdriver: false, languages: false } });
+    const probes = { page: patched, iframe: patched, worker: workerPatched, serviceWorker: workerPatched };
+    expect(prototypeLieMismatches(probes)).toEqual([]);
+    expect(reasonIds({
+      ...cleanTells,
+      nativeFunctions: { functionToString: false, permissionsQuery: true },
+      prototypeLies: probes
+    })).toEqual([{ id: "native_function_patched", points: 15 }]);
+  });
+});
+
+describe("service worker probe wiring", () => {
+  it("imports the shared probe instead of copying it", () => {
+    const source = readFileSync(new URL("../public/sw-detector.js", import.meta.url), "utf8");
+    const registration = readFileSync(new URL("../public/collect-workers.js", import.meta.url), "utf8");
+    expect(source).toContain('import { probePrototypeLies } from "./collect-tells.js"');
+    expect(source).toContain("probePrototypeLies(navigator)");
+    expect(source).not.toContain("[native code]");
+    expect(registration).toContain('navigator.serviceWorker.register("/sw-detector.js", { scope: "/", type: "module" })');
   });
 });

@@ -1,3 +1,5 @@
+import { probePrototypeLies } from "./collect-tells.js";
+
 self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
@@ -21,7 +23,8 @@ self.addEventListener("message", async (event) => {
     webdriver: safe(() => navigator.webdriver),
     vendor: safe(() => navigator.vendor),
     appVersion: safe(() => navigator.appVersion),
-    userAgentData: await getUaData()
+    userAgentData: await getUaData(),
+    prototypeLies: readPrototypeLies()
   };
 
   if (replyPort) replyPort.postMessage(data);
@@ -48,6 +51,15 @@ async function getUaData() {
       ]);
     }
     return base;
+  } catch (error) {
+    return { error: String(error && error.message ? error.message : error) };
+  }
+}
+
+// Same probe the page, iframe, and Web Worker run. A throw is a skipped reading, not a lie.
+function readPrototypeLies() {
+  try {
+    return probePrototypeLies(navigator);
   } catch (error) {
     return { error: String(error && error.message ? error.message : error) };
   }
