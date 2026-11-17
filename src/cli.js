@@ -198,7 +198,7 @@ export async function runBrowser(pageUrl, timeoutMs, playwrightImpl, loadPlaywri
       const text = document.querySelector('[data-tells-report="raw"]')?.textContent?.trim() ?? "";
       return text.startsWith("{");
     }, undefined, { timeout: timeoutMs });
-    const text = await page.locator('[data-tells-report="raw"]').innerText();
+    const text = await page.locator('[data-tells-report="raw"]').textContent();
     const report = parseReportText(text);
     if (!report) {
       throw new CliError("The page did not produce a schema_version 1 report.", EXIT.RUN_FAILED);
