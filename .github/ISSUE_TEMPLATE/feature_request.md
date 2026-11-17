@@ -2,7 +2,7 @@
 name: 💡 Feature Request
 about: Suggest an enhancement to Blowhorn Tells.
 title: ''
-labels: 'kind/enhancement'
+labels: ['kind/enhancement', 'help wanted']
 assignees: ''
 ---
 ### Current Behavior
