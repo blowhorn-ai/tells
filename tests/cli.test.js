@@ -132,7 +132,7 @@ describe("main", () => {
               setDefaultTimeout() {},
               async goto(url) { expect(url).toBe("http://127.0.0.1:9/"); },
               async waitForFunction() {},
-              locator() { return { innerText: async () => JSON.stringify(bot) }; }
+              locator() { return { textContent: async () => JSON.stringify(bot) }; }
             }),
             close: async () => {}
           })
