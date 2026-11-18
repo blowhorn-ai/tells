@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="What the Behavioural classification check reads, how Pass, Warning, Fail and Not available are decided, and the points it can subtract. Catalog 1.0.2.">
+  <meta name="description" content="What the Behavioural classification check reads, how Pass, Warning, Fail and Not available are decided, and the points it can subtract. Catalog 1.0.3.">
   <meta name="theme-color" content="#1E2117" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
   <title>Behavioural classification check | Blowhorn Tells</title>
@@ -48,7 +48,7 @@
   <main id="main" class="wrap doc-page">
     <p class="eyebrow"><a href="/checks/">Check guide</a> · Behavior</p>
     <h1>Behavioural classification</h1>
-    <p class="lede">Group: behavior. Since v0.3.3. Catalog 1.0.2.</p>
+    <p class="lede">Group: behavior. Since v0.3.3. Catalog 1.0.3.</p>
     <section class="panel card card-field">
       <h2>What Tells reads</h2>
       <ul>
@@ -61,8 +61,8 @@
       <h2>How the result is decided</h2>
       <ul>
           <li><strong>Pass:</strong> A score of 0.5 or better. A short, still visit scores lower than an active one; that is the measure working, not an accusation.</li>
-          <li><strong>Warning:</strong> A score from 0.25 to 0.5: borderline texture.</li>
-          <li><strong>Fail:</strong> A behaviour score under 0.25, or evidence that is missing or does not hold together.</li>
+          <li><strong>Warning:</strong> A score from 0.25 to 0.5: borderline texture. A run with no input observed also warns, as no input, not as automated input.</li>
+          <li><strong>Fail:</strong> A behaviour score under 0.25 on input that was actually observed, or evidence that is missing or does not hold together.</li>
           <li><strong>Not available:</strong> Behaviour evidence was not collected in this run.</li>
       </ul>
     </section>
@@ -72,13 +72,14 @@
       <ul>
           <li><code>behavior_score_low</code>: high, 25 points. since v0.2.0</li>
           <li><code>behavior_score_borderline</code>: medium, 12 points. since v0.2.0</li>
+          <li><code>behavior_no_input</code>: low, 0 points. since master</li>
           <li><code>behavior_evidence_invalid</code>: high, 25 points. since v0.3.3</li>
       </ul>
     </section>
 
     <section class="panel card card-paper">
       <h2>Note</h2>
-      <p>The row shipped in v0.2.0. behavior_evidence_invalid was added in v0.3.3 when the Worker started deriving the behaviour score (#35, #38).</p>
+      <p>The row shipped in v0.2.0. behavior_evidence_invalid was added in v0.3.3 when the Worker started deriving the behaviour score (#35, #38). behavior_no_input was added in master for #83: a run over 3.5s with no input observed is reported as no input, not as automated input, and costs no points.</p>
     </section>
   </main>
 

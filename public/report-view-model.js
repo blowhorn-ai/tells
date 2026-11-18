@@ -14,7 +14,7 @@ export function buildReasonEvidence(reason, report) {
     ]);
   }
 
-  if (reason.id === "behavior_score_low" || reason.id === "behavior_score_borderline") {
+  if (reason.id === "behavior_score_low" || reason.id === "behavior_score_borderline" || reason.id === "behavior_no_input") {
     return compactEntries([
       entry("Verdict sample", formatMs(data.elapsedMs)),
       entry("Events", summarizeEventCounts(data.eventCounts)),
@@ -181,7 +181,7 @@ function summarizeEventCounts(counts) {
 function findBehaviorVerdictSample(report) {
   const reasons = report?.verdict?.reasons;
   if (!Array.isArray(reasons)) return null;
-  const reason = reasons.find((item) => item.id === "behavior_score_low" || item.id === "behavior_score_borderline");
+  const reason = reasons.find((item) => item.id === "behavior_score_low" || item.id === "behavior_score_borderline" || item.id === "behavior_no_input");
   return reason?.data && typeof reason.data === "object" ? reason.data : null;
 }
 

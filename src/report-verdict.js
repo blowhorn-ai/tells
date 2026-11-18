@@ -80,6 +80,7 @@ export const REASON_IDS = Object.freeze([
   "performance_memory_anomaly",
   "behavior_score_low",
   "behavior_score_borderline",
+  "behavior_no_input",
   "behavior_evidence_invalid",
   "interaction_report_invalid",
   ...INTERACTION_CHECK_IDS
@@ -346,7 +347,14 @@ export function scoreReport(
     if (behavior == null) {
       penalize(25, "behavior_evidence_invalid", "high", "Behavior evidence was missing, malformed or inconsistent and was not scored.");
     } else if (behavior.score < 0.25) {
-      penalize(25, "behavior_score_low", "high", "Behavior score is very low.", behavior.summary);
+      // A run with no input at all is not automated input: it is inconclusive behaviour
+      // evidence, reported on its own and costing no points. behavior_score_low is only
+      // for input that was actually observed and looks automated.
+      if (isNoInputRun(behavior.summary)) {
+        penalize(0, "behavior_no_input", "low", "No pointer or key input was observed during the run.", behavior.summary);
+      } else {
+        penalize(25, "behavior_score_low", "high", "Behavior score is very low.", behavior.summary);
+      }
     } else if (behavior.score < 0.5) {
       penalize(12, "behavior_score_borderline", "medium", "Behavior score is borderline.", behavior.summary);
     }
@@ -355,10 +363,22 @@ export function scoreReport(
   scoreInteraction(interaction, penalize, new Set(reasons.map((reason) => reason.id)));
 
   score = Math.max(0, Math.min(100, Math.round(score)));
-  const classification = score >= 75 ? "likely_human" : score >= 45 ? "suspicious" : "likely_bot";
-  const risk = score >= 75 ? "low" : score >= 45 ? "medium" : "high";
+  let classification = score >= 75 ? "likely_human" : score >= 45 ? "suspicious" : "likely_bot";
+  // A high severity finding caps the verdict at suspicious, whatever the score: a run
+  // carrying a high finding never reads as human.
+  if (classification === "likely_human" && reasons.some((reason) => reason.severity === "high")) {
+    classification = "suspicious";
+  }
+  const risk = classification === "likely_human" ? "low" : classification === "suspicious" ? "medium" : "high";
 
   return { score, classification, risk, reasons };
+}
+
+// A run long enough to have shown input, with zero input events observed. This is the same
+// boundary scoreBehavior uses to force the behaviour score to 0.03: under 3.5s a still run
+// simply had no time to show input yet.
+function isNoInputRun(summary) {
+  return summary?.elapsedMs > 3500 && Object.keys(summary.eventCounts || {}).length === 0;
 }
 
 // The client's score is ignored. The summary and the posted event tail are scored with the same

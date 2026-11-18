@@ -39,6 +39,27 @@ describe("verdict voice", () => {
     expect(verdictVoice("something_new").label).toBe("Inspecting");
   });
 
+  it("names the top signal on a human verdict that still carries findings", () => {
+    const voice = verdictVoice("likely_human", [{ id: "behavior_no_input", severity: "low", points: 0 }]);
+
+    expect(voice.line).toBe("Top signal: No pointer or key input observed during the run");
+    expect(voice.line).not.toContain("Nothing here reads as a bot");
+  });
+
+  it("keeps the clean line when a human verdict carries no findings", () => {
+    expect(verdictVoice("likely_human").line).toBe("Nothing here reads as a bot. Boots could use a polish.");
+    expect(verdictVoice("likely_human", []).line).toBe("Nothing here reads as a bot. Boots could use a polish.");
+  });
+
+  it("names the highest severity finding first", () => {
+    const voice = verdictVoice("likely_human", [
+      { id: "behavior_no_input", severity: "low", points: 0 },
+      { id: "behavior_score_low", severity: "high", points: 25 }
+    ]);
+
+    expect(voice.line).toBe("Top signal: Pointer and key input look automated");
+  });
+
   it("turns a failure into an order to act", () => {
     const voice = failureVoice("Network error.");
 

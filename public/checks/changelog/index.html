@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Catalog version 1.0.2 of the Blowhorn Tells check catalog: the checks and scored reasons already shipping, and the releases they belong to.">
+  <meta name="description" content="Catalog version 1.0.3 of the Blowhorn Tells check catalog: the checks and scored reasons already shipping, and the releases they belong to.">
   <meta name="theme-color" content="#1E2117" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
   <title>Check catalog changelog | Blowhorn Tells</title>
@@ -52,6 +52,18 @@
       <a href="https://github.com/blowhorn-ai/tells/blob/master/schemas/check-catalog.json"><code>schemas/check-catalog.json</code></a>
       (schema <code>schemas/check-catalog.schema.json</code>). <code>catalog_version</code> is the
       version of that file. It records the checks that already ship. It does not add any.</p>
+
+    <section class="panel card card-dispatch">
+      <h2>1.0.3</h2>
+      <p>Adds <code>behavior_no_input</code> (0 points, low) on behavioural classification.
+        A run over 3.5s with no pointer or key input observed is reported as no input, not
+        as automated input; <code>behavior_score_low</code> is now only for input that was
+        actually observed and scores under 0.25. A high severity finding caps the verdict
+        at <code>suspicious</code>, whatever the score, and the verdict card names the top
+        signal instead of saying nothing here reads as a bot when the report carries
+        findings. The reason's <code>since</code> stays <code>master</code> until the next
+        release.</p>
+    </section>
 
     <section class="panel card card-paper">
       <h2>1.0.2</h2>

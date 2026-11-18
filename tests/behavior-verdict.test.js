@@ -48,19 +48,58 @@ describe("server-derived behaviour score", () => {
     const forgedHigh = scoreReport({ server, client: { behavior: idleBehavior } });
     const forgedLow = scoreReport({ server, client: { behavior: activeBehavior } });
 
+    // Idle for 5s with no input at all: reported as no input, not as automated input.
     expect(behaviorReason(forgedHigh)).toMatchObject({
-      id: "behavior_score_low",
-      severity: "high",
-      points: 25,
+      id: "behavior_no_input",
+      severity: "low",
+      points: 0,
       data: { elapsedMs: 5000, pointerDistance: 0 }
     });
-    expect(forgedHigh.score).toBe(75);
+    expect(forgedHigh.score).toBe(100);
+    expect(forgedHigh.classification).toBe("likely_human");
     expect(behaviorReason(forgedLow)).toBeUndefined();
     expect(forgedLow.score).toBe(100);
     expect(withDerivedBehavior({ behavior: idleBehavior }).behavior.score).toBe(0.03);
     expect(withDerivedBehavior({ behavior: idleBehavior }).behavior.claimedScore).toBe(1);
     expect(withDerivedBehavior({ behavior: activeBehavior }).behavior.score).toBe(0.54);
     expect(withDerivedBehavior({ behavior: activeBehavior }).behavior.claimedScore).toBe(0.01);
+  });
+
+  it("reports a no-input run as no input on the behaviour check row", () => {
+    const verdict = scoreReport({ server, client: { behavior: idleBehavior } });
+    const row = buildCheckRows({ server, client: { behavior: idleBehavior }, verdict })
+      .find((item) => item.name === "Behavioural classification");
+
+    expect(verdict.reasons.map((reason) => reason.id)).toEqual(["behavior_no_input"]);
+    expect(row.status).toBe("warn");
+    expect(row.summary).toBe("No pointer or key input observed during the run");
+  });
+
+  it("caps the verdict at suspicious when a single high severity finding fires", () => {
+    // A 100ms still run: no time to show input, so the low score is observed-input
+    // behaviour, not a no-input run. One high finding, 25 points, score 75.
+    const shortStill = {
+      score: 1,
+      summary: {
+        elapsedMs: 100,
+        eventCounts: {},
+        pointerMoveSamples: 0,
+        pointerDistance: 0,
+        pointerSpeedStdDev: 0,
+        rafStdDev: 0
+      },
+      recentEvents: []
+    };
+    const verdict = scoreReport({ server, client: { behavior: shortStill } });
+
+    expect(behaviorReason(verdict)).toMatchObject({
+      id: "behavior_score_low",
+      severity: "high",
+      points: 25
+    });
+    expect(verdict.score).toBe(75);
+    expect(verdict.classification).toBe("suspicious");
+    expect(verdict.risk).toBe("medium");
   });
 
   it("does not treat missing or inconsistent behaviour evidence as a pass", () => {
@@ -91,6 +130,9 @@ describe("server-derived behaviour score", () => {
         points: 25
       });
       expect(verdict.score).toBe(75);
+      // One high finding at 75: the severity cap holds the verdict at suspicious.
+      expect(verdict.classification).toBe("suspicious");
+      expect(verdict.risk).toBe("medium");
       expect(verdict.reasons.map((reason) => reason.id)).not.toContain("behavior_score_low");
       expect(verdict.reasons.map((reason) => reason.id)).not.toContain("behavior_score_borderline");
     }
@@ -179,6 +221,8 @@ describe("server-derived behaviour score", () => {
     expect(response.status).toBe(200);
     expect(body.client.behavior.score).toBe(0.03);
     expect(body.client.behavior.claimedScore).toBe(1);
-    expect(body.verdict.reasons.map((reason) => reason.id)).toContain("behavior_score_low");
+    expect(body.verdict.reasons.map((reason) => reason.id)).toContain("behavior_no_input");
+    expect(body.verdict.score).toBe(100);
+    expect(body.verdict.classification).toBe("likely_human");
   });
 });

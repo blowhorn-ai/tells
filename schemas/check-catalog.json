@@ -1,5 +1,5 @@
 {
-  "catalog_version": "1.0.2",
+  "catalog_version": "1.0.3",
   "checks": [
     {
       "id": "request-profile",
@@ -669,15 +669,15 @@
       "name": "Behavioural classification",
       "group": "behavior",
       "since": "v0.3.3",
-      "note": "The row shipped in v0.2.0. behavior_evidence_invalid was added in v0.3.3 when the Worker started deriving the behaviour score (#35, #38).",
+      "note": "The row shipped in v0.2.0. behavior_evidence_invalid was added in v0.3.3 when the Worker started deriving the behaviour score (#35, #38). behavior_no_input was added in master for #83: a run over 3.5s with no input observed is reported as no input, not as automated input, and costs no points.",
       "reads": [
         "Pointer, keyboard, scroll, focus and visibility events and their timing during the visit",
         "The activity from the interaction test, when taken"
       ],
       "rules": {
         "pass": "A score of 0.5 or better. A short, still visit scores lower than an active one; that is the measure working, not an accusation.",
-        "warn": "A score from 0.25 to 0.5: borderline texture.",
-        "fail": "A behaviour score under 0.25, or evidence that is missing or does not hold together.",
+        "warn": "A score from 0.25 to 0.5: borderline texture. A run with no input observed also warns, as no input, not as automated input.",
+        "fail": "A behaviour score under 0.25 on input that was actually observed, or evidence that is missing or does not hold together.",
         "na": "Behaviour evidence was not collected in this run."
       },
       "reasons": [
@@ -692,6 +692,12 @@
           "points": 12,
           "severity": "medium",
           "since": "v0.2.0"
+        },
+        {
+          "id": "behavior_no_input",
+          "points": 0,
+          "severity": "low",
+          "since": "master"
         },
         {
           "id": "behavior_evidence_invalid",

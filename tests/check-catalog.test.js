@@ -155,6 +155,7 @@ const triggers = {
   ua_platform_mismatch: () => reason({}, quietClient({ consistency: { uaPlatformMismatch: { userAgent: "Mac", platform: "Linux" } } }), "ua_platform_mismatch"),
   timezone_mismatch: () => reason({}, quietClient({ consistency: { timezoneMismatch: { browserTimezone: "UTC", ipTimezone: "America/Chicago" } } }), "timezone_mismatch"),
   behavior_score_low: () => reason({}, quietClient({ behavior: behaviorFrom([], 100) }), "behavior_score_low"),
+  behavior_no_input: () => reason({}, quietClient({ behavior: behaviorFrom([], 5000) }), "behavior_no_input"),
   behavior_score_borderline: () => reason({}, quietClient({
     behavior: behaviorFrom([
       { type: "pointermove", t: 0, x: 0, y: 0 },

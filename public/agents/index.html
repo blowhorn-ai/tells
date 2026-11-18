@@ -130,6 +130,8 @@ npx github:blowhorn-ai/tells</code></pre>
         <li><code>verdict.score</code> runs 0 to 100 and starts at 100. Every finding subtracts points.</li>
         <li><code>verdict.classification</code> is <code>likely_human</code> (75 and up),
           <code>suspicious</code> (45 to 74), or <code>likely_bot</code> (under 45).
+          A high severity finding caps the classification at <code>suspicious</code>,
+          whatever the score.
           <code>verdict.risk</code> is the same bands as low, medium, high.</li>
         <li><code>verdict.reasons</code> is the evidence: one entry per finding, each with an
           <code>id</code>, a <code>severity</code> of high, medium or low, a plain-words

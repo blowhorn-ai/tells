@@ -65,6 +65,11 @@
         <li>45 to 74 is <code>suspicious</code>. The page says Hard to tell. Risk is medium.</li>
         <li>Under 45 is <code>likely_bot</code>. The page says Looks like a bot. Risk is high.</li>
       </ul>
+      <p>A run carrying a high severity finding is at most <code>suspicious</code>, whatever the
+        score: a high finding never reads as human. A run with no pointer or key input
+        observed is reported as no input, not as automated input: it warns, and it costs
+        no points. The verdict card says nothing here reads as a bot only when the report
+        carries no findings; when findings exist, it names the top one instead.</p>
       <p>Each check is its own pass, warn, or fail verdict, separate from that band.
         The labels on the page are Pass, Warning, and Fail:</p>
       <ul>
@@ -105,7 +110,7 @@
         <code>schema_version</code> are not on the new scale.</p>
       <p>The check catalog,
         <a href="https://github.com/blowhorn-ai/tells/blob/master/schemas/check-catalog.json"><code>schemas/check-catalog.json</code></a>,
-        has <code>catalog_version</code>. <code>catalog_version</code> is 1.0.2.
+        has <code>catalog_version</code>. <code>catalog_version</code> is 1.0.3.
         It is the semver of that file. The file lists every check and every scored
         reason that already ships. <code>catalog_version</code> is not a field on
         <code>/api/report</code>. The

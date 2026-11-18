@@ -386,6 +386,24 @@ describe("verdict card fields", () => {
       }
     });
     score({ userAgent: "x", cloudflareBotManagement: { available: true, score: 99, verifiedBot: true } }, {});
+    // Observed input that still scores under 0.25: a 100ms run with one key press.
+    // A no-input run over 3.5s reports behavior_no_input instead, so this short run is
+    // the probe that reaches behavior_score_low.
+    score({ userAgent: "x" }, {
+      browser: { userAgent: "Mozilla/5.0 Chrome/120.0" },
+      behavior: {
+        score: 0.9,
+        summary: {
+          elapsedMs: 100,
+          eventCounts: { keydown: 1 },
+          pointerMoveSamples: 0,
+          pointerDistance: 0,
+          pointerSpeedStdDev: 0,
+          rafStdDev: 0
+        },
+        recentEvents: [{ type: "keydown", t: 50 }]
+      }
+    });
     // Every interaction check the Worker derives is scored under its own id when it fails.
     const { events, task } = scriptedElementClick();
     const derived = deriveInteraction(buildInteractionReport(events, task));

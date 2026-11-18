@@ -115,6 +115,7 @@
                   "performance_memory_anomaly",
                   "behavior_score_low",
                   "behavior_score_borderline",
+                  "behavior_no_input",
                   "behavior_evidence_invalid",
                   "interaction_report_invalid",
                   "int_trusted",

@@ -1,3 +1,5 @@
+import { reasonHeadline } from "./checks-view-model.js";
+
 const FIGURES = {
   inspector: { src: "https://blowhorn.ai/assets/brand/mascot/locked-6/major-6-head.webp", alt: "Major Blowhorn, a teal rooster in a drill sergeant's campaign hat, shouting into his bullhorn" },
   bot: { src: "/assets/brand/robo-recruit.webp", alt: "Robo-Recruit, a wind-up tin-can chicken, saluting" }
@@ -30,10 +32,18 @@ const VERDICTS = {
   }
 };
 
-export function verdictVoice(classification) {
+export function verdictVoice(classification, reasons = []) {
   const voice = VERDICTS[classification] || VERDICTS.pending;
+  // "Nothing here reads as a bot" is only true when the report carries no reasons.
+  // When reasons exist, the card names the top signal instead of denying it.
+  if (classification === "likely_human" && reasons.length) {
+    const top = [...reasons].sort((a, b) => (SEVERITY_RANK[b.severity] || 0) - (SEVERITY_RANK[a.severity] || 0))[0];
+    return { ...voice, line: `Top signal: ${reasonHeadline(top.id)}`, figure: FIGURES[voice.figure] };
+  }
   return { ...voice, figure: FIGURES[voice.figure] };
 }
+
+const SEVERITY_RANK = { high: 3, medium: 2, low: 1 };
 
 // The verdict card's readout. Keys match the classification the server returns (score 75 and up is
 // likely_human, 45 to 74 suspicious, under 45 likely_bot; see src/report-verdict.js), plus pending while a

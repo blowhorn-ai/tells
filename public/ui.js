@@ -18,7 +18,7 @@ const CHECK_GROUP_VARIANT = { automation: "card-field", behavior: "card-stamp", 
 
 export function renderReport(state, report, options = {}) {
   const verdict = report.verdict || {};
-  renderVoice(verdictVoice(verdict.classification));
+  renderVoice(verdictVoice(verdict.classification, verdict.reasons || []));
 
   renderVerdictCard(report);
   renderReasons(verdict.reasons || [], report);
