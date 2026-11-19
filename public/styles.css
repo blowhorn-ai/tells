@@ -1209,6 +1209,11 @@ pre {
   word-break: break-word;
 }
 
+/* A code block is one surface. The shared cards.css gives every code element inside a card an
+   inline chip background (a zero-specificity :where rule); inside pre that chip repeated on
+   every line. */
+pre code { background: none; }
+
 .toggle-panel > summary {
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr);
@@ -1584,6 +1589,10 @@ input:focus {
 .doc-page .panel h2 {
   margin-top: 0;
 }
+
+/* pre has no margin and p has no top margin, so prose that follows a code block needs its own gap,
+   the same 1em a paragraph leaves below itself. */
+.doc-page pre + p { margin-top: 1em; }
 
 .doc-page pre {
   overflow-x: auto;

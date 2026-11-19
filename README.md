@@ -18,7 +18,7 @@ Read the finished report from the page. The Raw report panel, `pre#jsonOut` with
 
 **Fingerprint protection.** Canvas, WebGL, audio, fonts and voices are each read three times in the window and once in a same-origin iframe, and canvas and WebGL once more in a Web Worker. A solid-colour canvas and a constant audio signal act as controls. Each surface is classed as stable, randomized per session, randomized per read, blocked, or inconsistent between contexts, and only those counts and classes are sent. The Worker re-derives the class. A surface that reads differently in the window than in a worker or iframe scores `fingerprint_context_inconsistent`. Randomization is reported as `fingerprint_randomized` at 0 points, because privacy browsers randomize too.
 
-**Behavior.** A transparent score from pointer, key, scroll, focus and frame timing. The Worker derives that score from the evidence the page posts and uses the derived score in the verdict. An optional interaction test — press Start, type one fixed phrase, press Submit (Enter or Space on either button also works) — adds 15 checks of event order, click geometry, press length, key rhythm, focus and blur, and tab visibility, which stay warn-only until calibrated.
+**Behavior.** A transparent score from pointer, key, scroll, focus and frame timing. The Worker derives that score from the evidence the page posts and uses the derived score in the verdict. An optional interaction test (press Start, type one fixed phrase, press Submit; Enter or Space on either button also works) adds 15 checks of event order, click geometry, press length, key rhythm, focus and blur, and tab visibility, which stay warn-only until calibrated.
 
 ## API for scripts
 
@@ -50,7 +50,29 @@ API routes are rate limited at the Worker edge by route and client IP (30 calls 
 
 ## CLI
 
-`bin/tells.js` is the `tells` command (`package.json` `bin`). From a checkout:
+Install once, then run `tells`:
+
+```bash
+npm i -g blowhorn-tells
+tells
+tells --server-only
+```
+
+or with Homebrew (it pulls in `node`):
+
+```bash
+brew install blowhorn-ai/tap/tells
+tells
+```
+
+The npm package is [`blowhorn-tells`](https://www.npmjs.com/package/blowhorn-tells); the command it puts on PATH is `tells`. The Homebrew formula lives in the [blowhorn-ai/homebrew-tap](https://github.com/blowhorn-ai/homebrew-tap) tap. To run the default branch once without a global install:
+
+```bash
+npx github:blowhorn-ai/tells
+npx github:blowhorn-ai/tells --server-only
+```
+
+From a checkout, `bin/tells.js` is the same command (`package.json` `bin`):
 
 ```bash
 node bin/tells.js
@@ -58,25 +80,26 @@ node bin/tells.js --url http://127.0.0.1:8787
 node bin/tells.js --server-only
 ```
 
-Once this commit is on the default branch, the same command is:
-
-```bash
-npx github:blowhorn-ai/tells
-npx github:blowhorn-ai/tells --server-only
-```
-
-The package stays private on npm. The GitHub entry is the public `npx` path. The command does not publish the package and does not store the report.
+The command does not store the report. [`schemas/cli-release.json`](schemas/cli-release.json) (schema [`schemas/cli-release.schema.json`](schemas/cli-release.schema.json)) is the source of truth for the package, command, tap and formula names and the install commands above; `tells --help` prints its install lines.
 
 Stdout is the JSON body and nothing else. The default run opens the page in headless Chromium with Playwright and prints the text of `[data-tells-report="raw"]`, which is the `POST /api/report` body (`schemas/report.schema.json`, `schema_version` 1). `--server-only` skips the browser and prints `GET /api/check` (`schemas/check.schema.json`, `schema_version` 1). `--compact` prints one JSON line. Stderr is a single line, `<classification> score=<n>`.
 
-Playwright is optional. It is a dev dependency in this checkout so a local browser run can load it, and it is not a production dependency, so `npx github:blowhorn-ai/tells` does not install it. Chromium itself is not bundled. `--server-only` does not need a browser and is the npx path that needs no extra install. A live browser pass from a checkout:
+Playwright is optional. It is a dev dependency in this checkout so a local browser run can load it, and it is not a dependency of the `blowhorn-tells` package, so `npm i -g blowhorn-tells`, `brew install blowhorn-ai/tap/tells` and `npx github:blowhorn-ai/tells` do not install it. Chromium itself is not bundled. `--server-only` does not need a browser or anything else. For the browser run after an npm install, add Playwright globally next to `tells` (Node finds it there):
+
+```bash
+npm i -g playwright
+npx playwright install chromium
+tells
+```
+
+A Homebrew install keeps `tells` in its own prefix, where Node cannot find Playwright, so use the npm install for browser runs. A live browser pass from a checkout:
 
 ```bash
 pnpm exec playwright install chromium
 node bin/tells.js --url http://127.0.0.1:8787
 ```
 
-Start `pnpm dev` first when the URL is local. If Playwright or Chromium is missing, the browser run exits 2 and prints the install step. CI that cannot install a browser should run the unit tests (`pnpm test`) and, if it wants a live request, `node bin/tells.js --server-only`.
+Start `pnpm dev` first when the URL is local. If Playwright or Chromium is missing, the browser run exits 2 and prints the install step. CI that cannot install a browser should run the unit tests (`pnpm test`) and, if it wants a live request, `tells --server-only` (or `node bin/tells.js --server-only` from a checkout).
 
 | Exit | Meaning |
 |---|---|
@@ -114,7 +137,7 @@ Service Worker checks need a secure context; `localhost` counts as one in curren
 
 The card variants (`card-paper`, `card-dispatch`, `card-stamp`, `card-field`, `card-plain`) come from the shared stylesheet at `https://blowhorn.ai/assets/brand/cards.css`, which `public/index.html` links rather than copies. The dispatch card is near-black in both themes, so `public/styles.css` gives it the dark token set. The end-to-end tests stub that stylesheet so they never depend on the network.
 
-No two cards that sit next to each other share a variant. The result page's detail panels sit in a grid, one column and two above 900px. Their variants follow the markup order on a four-step cycle (stamp, field, plain, dispatch); adding or moving a panel means re-dealing the cycle from that point. `tests/e2e/card-neighbours.spec.js` checks the rendered layout of `/`, `/compare/`, `/methodology/` and the `/checks/` and `/agents/` pages at 320, 820 and 1280px in both themes. The e2e test server (`tests/e2e/support/worker-server.js`) serves `dir/` as `dir/index.html`, as Workers Assets does. Doc pages with five sections or fewer use each variant once. No card, panel, row, callout or quote draws a stripe on one edge; `tests/e2e/no-edge-stripes.spec.js` checks the computed styles of every card, panel, row, callout, quote and item element on `/`, `/compare/`, `/methodology/`, `/agents/`, `/checks/` and every `/checks/<name>/` page, in both themes.
+No two cards that sit next to each other share a variant. The result page's detail panels sit in a grid, one column and two above 900px. Their variants follow the markup order on a four-step cycle (stamp, field, plain, dispatch); adding or moving a panel means re-dealing the cycle from that point. `tests/e2e/card-neighbours.spec.js` checks the rendered layout of `/`, `/compare/`, `/methodology/` and the `/checks/` and `/agents/` pages at 320, 820 and 1280px in both themes. The e2e test server (`tests/e2e/support/worker-server.js`) serves `dir/` as `dir/index.html`, as Workers Assets does. Doc pages with five sections or fewer use each variant once. No card, panel, row, callout or quote draws a stripe on one edge; `tests/e2e/no-edge-stripes.spec.js` checks the computed styles of every card, panel, row, callout, quote and item element on `/`, `/compare/`, `/methodology/`, `/agents/`, `/checks/` and every `/checks/<name>/` page, in both themes. A code block on a doc page is one surface: `pre code` drops the inline code chip that the shared `cards.css` gives every `code` in a card, and a paragraph after a block keeps a 1em gap. `tests/e2e/doc-code-blocks.spec.js` checks both on every doc page, with the shared chip rule served in place of the empty stub.
 
 ## Known-good corpus
 
@@ -136,6 +159,18 @@ The script keeps only the headers a browser sends by itself and drops the rest, 
 
 On Cloudflare the client address always comes from `cf-connecting-ip`. Behind another proxy, set `TRUST_FORWARDED_CLIENT_IP_HEADERS=true` and `TRUSTED_PROXY_HOPS` to the number of proxies you run (default 1). The Worker then reads `X-Forwarded-For` from the right, so a client cannot choose its own rate-limit key.
 
+## Release
+
+Release Drafter keeps a draft `v<semver>` release on `master`. Publishing it runs `.github/workflows/publish-blowhorn-tells.yml`, which sets the package version from the tag (`v0.3.12` publishes `0.3.12`; a prerelease such as `v0.4.0-rc.1` goes to the `next` dist-tag), runs `pnpm check` and `pnpm test`, and runs `npm publish --provenance --access public`. A tag that is not `v` plus semver fails the run before anything is published (`scripts/release-version.mjs`). The `version` in `package.json` tracks the latest tag but the tag wins at publish time.
+
+The workflow authenticates with npm trusted publishing (OIDC), so there is no npm token in the repo or its secrets. npm offers the trusted publisher setting only once a package exists, so the first release needs a maintainer once:
+
+1. Publish the first release that contains this workflow (the earlier tags still have `"private": true`). Its run fails at `npm publish` because npm does not trust the workflow yet. From a clean checkout of that tag, publish it by hand: `npm version <version> --no-git-tag-version`, then `npm publish --access public` (npm asks for your login and 2FA).
+2. On npmjs.com open Packages > blowhorn-tells > Settings > Trusted publishing and add GitHub Actions with organization `blowhorn-ai`, repository `tells`, workflow filename `publish-blowhorn-tells.yml`, and no environment. Allow `npm publish` (new configurations only allow `npm stage publish` unless you tick it). A new configuration expires unless a publish uses it within 2 days, so add it shortly before the next release, or delete and re-add it if it lapses.
+3. Optionally set the package's publishing access to require 2FA and disallow tokens, so only the workflow can publish.
+
+The Homebrew tap does not need a token from this repo. Its own workflow polls the public npm registry and rewrites `Formula/tells.rb` with `scripts/render-homebrew-formula.mjs`. The tap's files, including that workflow, start in [`packaging/homebrew-tap/`](packaging/homebrew-tap/); its README has the steps to create `blowhorn-ai/homebrew-tap` from them.
+
 ## IP intelligence providers
 
 The default provider is `ipapi.is`, called from the Worker. Anonymous use covers light traffic; for more, set a Worker secret:
@@ -153,4 +188,4 @@ pnpm wrangler secret put IPAPI_IS_KEY
 
 ## License
 
-Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+Apache-2.0. See [LICENSE](LICENSE).

@@ -1,6 +1,7 @@
 // Public CLI. Stdout is a schema_version 1 body (report or check). Stderr is one verdict line.
 // Exit codes are documented in --help and the README.
 
+import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 
 export const DEFAULT_URL = "https://tells.blowhorn.ai/";
@@ -21,8 +22,19 @@ export class CliError extends Error {
   }
 }
 
-export function helpText() {
+// schemas/cli-release.json is the source of truth for the install commands. It ships in the
+// npm package next to this file. Read lazily: only --help and the Playwright-missing message use it.
+export function releaseManifest() {
+  return JSON.parse(readFileSync(new URL("../schemas/cli-release.json", import.meta.url), "utf8"));
+}
+
+export function helpText(manifest = releaseManifest()) {
   return `tells - run Blowhorn Tells and print the report
+
+Install once, then run tells:
+  ${manifest.npm.install}
+  ${manifest.homebrew.install}
+Without a global install: ${manifest.npx.command}
 
 Usage:
   tells [--url <url>] [--timeout <ms>] [--compact]
@@ -31,9 +43,10 @@ Usage:
 
 The default run opens <url> in headless Chromium through Playwright and prints
 the JSON in [data-tells-report="raw"] (the POST /api/report body,
-schemas/report.schema.json, schema_version 1). Playwright is optional: it is a
-dev dependency in this checkout and is not installed by npx. If Playwright or
-Chromium is missing the command exits 2 and names the install step.
+schemas/report.schema.json, schema_version 1). Playwright is optional: it is
+not a dependency of the ${manifest.package.name} package, so none of the installs
+above add it. If Playwright or Chromium is missing the command exits 2 and names
+the install step.
 
 --server-only calls GET /api/check on the same origin and prints that body
 (schemas/check.schema.json, schema_version 1). No browser.
@@ -186,7 +199,7 @@ export async function runBrowser(pageUrl, timeoutMs, playwrightImpl, loadPlaywri
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     throw new CliError(
-      `Could not launch Chromium. From a checkout run \`pnpm exec playwright install chromium\`. Or run \`tells --server-only\` to call GET /api/check with no browser. ${detail}`,
+      `Could not launch Chromium. Run \`npx playwright install chromium\` (from a checkout, \`pnpm exec playwright install chromium\`). Or run \`tells --server-only\` to call GET /api/check with no browser. ${detail}`,
       EXIT.RUN_FAILED
     );
   }
@@ -209,14 +222,22 @@ export async function runBrowser(pageUrl, timeoutMs, playwrightImpl, loadPlaywri
   }
 }
 
+// Node resolves "playwright" from this package's own directory upward. A global npm install
+// of Playwright sits next to a global npm install of tells, so that pairing loads. A Homebrew
+// install keeps tells in its own prefix, where no Playwright is found.
+export function playwrightMissingMessage(manifest = releaseManifest()) {
+  return `Playwright is not installed where tells can load it. With \`${manifest.npm.install}\`, add it with \`npm i -g playwright && npx playwright install chromium\`; a Homebrew install cannot load Playwright, so use the npm install for browser runs. From a checkout run \`pnpm exec playwright install chromium\`. Or run \`tells --server-only\` to call GET /api/check with no browser. The README documents a live browser pass.`;
+}
+
 async function loadPlaywright() {
   try {
     return await import("playwright");
-  } catch {
-    throw new CliError(
-      "Playwright is not installed. From a checkout run `pnpm exec playwright install chromium`. Or run `tells --server-only` to call GET /api/check with no browser. The README documents a live browser pass.",
-      EXIT.RUN_FAILED
-    );
+  } catch (error) {
+    // Only a missing package means "install it". A Playwright that is present but fails to load
+    // (a broken or partial install) is reported as itself, so its real cause is not hidden.
+    const missing = error?.code === "ERR_MODULE_NOT_FOUND" && /['"]playwright['"]/.test(String(error.message));
+    if (missing) throw new CliError(playwrightMissingMessage(), EXIT.RUN_FAILED);
+    throw new CliError(`Could not load Playwright: ${error instanceof Error ? error.message : String(error)}`, EXIT.RUN_FAILED);
   }
 }
 

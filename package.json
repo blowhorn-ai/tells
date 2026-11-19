@@ -1,10 +1,34 @@
 {
   "name": "blowhorn-tells",
-  "version": "1.0.0",
-  "private": true,
+  "version": "0.3.11",
+  "description": "Run the Blowhorn Tells bot-detection check from a terminal and print the JSON report and verdict.",
+  "keywords": [
+    "bot-detection",
+    "browser-fingerprint",
+    "headless",
+    "playwright",
+    "cli"
+  ],
+  "homepage": "https://tells.blowhorn.ai",
+  "bugs": {
+    "url": "https://github.com/blowhorn-ai/tells/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blowhorn-ai/tells.git"
+  },
+  "license": "Apache-2.0",
   "type": "module",
   "bin": {
     "tells": "./bin/tells.js"
+  },
+  "files": [
+    "bin/tells.js",
+    "src/cli.js",
+    "schemas/cli-release.json"
+  ],
+  "engines": {
+    "node": ">=20"
   },
   "packageManager": "pnpm@10.28.0",
   "scripts": {
@@ -12,7 +36,7 @@
     "deploy": "wrangler deploy",
     "build:validators": "node scripts/build-validators.mjs",
     "generate:checks": "node scripts/generate-check-pages.mjs",
-    "check": "pnpm build:validators && node --check scripts/generate-check-pages.mjs && for file in src/*.js public/*.js bin/*.js; do node --check \"$file\"; done",
+    "check": "pnpm build:validators && for file in src/*.js public/*.js bin/*.js scripts/*.mjs; do node --check \"$file\" || exit 1; done",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:all": "pnpm check && pnpm test && pnpm test:e2e",

@@ -103,16 +103,23 @@ const report = JSON.parse(
         <code>client</code> object out of its report. The collectors that build it live in the
         <a href="https://github.com/blowhorn-ai/tells">open source</a> for this site.</p>
       <h3>3. Run the CLI</h3>
-      <p>The <code>tells</code> command in this repo prints that same JSON and a one-line verdict.
-        Stdout is only the body. Stderr is <code>&lt;classification&gt; score=&lt;n&gt;</code>.
+      <p>The <code>tells</code> command prints that same JSON and a one-line verdict. Install it
+        once from npm (package <code>blowhorn-tells</code>) or Homebrew, then run <code>tells</code>.</p>
+      <pre><code>npm i -g blowhorn-tells
+tells
+tells --server-only
+
+brew install blowhorn-ai/tap/tells
+tells</code></pre>
+      <p>Stdout is only the body. Stderr is <code>&lt;classification&gt; score=&lt;n&gt;</code>.
         Exit 0 is <code>likely_human</code> or <code>--help</code>, 3 is <code>suspicious</code>, 4 is <code>likely_bot</code>,
         2 means the run failed, and 1 is a usage error. A headless Playwright run is expected to
         exit 4. <code>--server-only</code> prints <code>GET /api/check</code> and needs no browser.
-        Playwright is optional and is not installed by <code>npx</code>.
-        The command does not save the report.</p>
-      <pre><code>node bin/tells.js
-node bin/tells.js --server-only
-npx github:blowhorn-ai/tells</code></pre>
+        Playwright is optional and no install adds it; after the npm install,
+        <code>npm i -g playwright &amp;&amp; npx playwright install chromium</code> enables the browser run.
+        The command does not save the report. To run it once without installing, or from a checkout:</p>
+      <pre><code>npx github:blowhorn-ai/tells
+node bin/tells.js</code></pre>
       <h3>4. Compare two saved reports</h3>
       <p>Download JSON on two runs, then open <a href="/compare/">/compare/</a>. Paste or drop
         both files. The page diffs the verdict label, score and reasons, each check row's status

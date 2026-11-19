@@ -1,0 +1,27 @@
+{
+  "package": {
+    "name": "blowhorn-tells",
+    "bin": "tells",
+    "entry": "bin/tells.js",
+    "description": "Run the Blowhorn Tells bot-detection check from a terminal and print the JSON report and verdict.",
+    "license": "Apache-2.0",
+    "homepage": "https://tells.blowhorn.ai",
+    "repository": "blowhorn-ai/tells"
+  },
+  "npm": {
+    "registry": "https://registry.npmjs.org",
+    "install": "npm i -g blowhorn-tells",
+    "publish_workflow": "publish-blowhorn-tells.yml"
+  },
+  "homebrew": {
+    "tap_repository": "blowhorn-ai/homebrew-tap",
+    "tap": "blowhorn-ai/tap",
+    "formula": "tells",
+    "desc": "Bot-detection and browser fingerprint check that prints a JSON verdict",
+    "depends_on": ["node"],
+    "install": "brew install blowhorn-ai/tap/tells"
+  },
+  "npx": {
+    "command": "npx github:blowhorn-ai/tells"
+  }
+}

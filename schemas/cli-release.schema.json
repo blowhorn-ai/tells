@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tells.blowhorn.ai/schemas/v1/cli-release.schema.json",
+  "title": "Tells CLI release manifest",
+  "description": "Where the tells command is published and how people install it. schemas/cli-release.json is the source of truth for the npm package name, the bin name, the Homebrew tap and formula, and the install commands the docs and tells --help print. package.json, the publish workflow and the Homebrew formula renderer must agree with it. The version is not here: it comes from the release tag.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["package", "npm", "homebrew", "npx"],
+  "properties": {
+    "package": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "bin", "entry", "description", "license", "homepage", "repository"],
+      "properties": {
+        "name": {
+          "description": "npm package name. Unscoped and lowercase.",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "bin": {
+          "description": "The command the package puts on PATH.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "entry": {
+          "description": "Package-relative path of the bin script.",
+          "type": "string",
+          "pattern": "^[a-z0-9_./-]+\\.js$"
+        },
+        "description": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "license": { "const": "Apache-2.0" },
+        "homepage": { "type": "string", "pattern": "^https://[^\\s/]+(/[^\\s]*)?$" },
+        "repository": {
+          "description": "GitHub owner/name of the public repo that publishes the package.",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$"
+        }
+      }
+    },
+    "npm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["registry", "install", "publish_workflow"],
+      "properties": {
+        "registry": { "const": "https://registry.npmjs.org" },
+        "install": {
+          "description": "One-time global install. Must name package.name.",
+          "type": "string",
+          "pattern": "^npm i -g [a-z0-9][a-z0-9-]*$"
+        },
+        "publish_workflow": {
+          "description": "Workflow file under .github/workflows/ that npm trusts to publish (OIDC trusted publishing).",
+          "type": "string",
+          "pattern": "^[a-z0-9-]+\\.yml$"
+        }
+      }
+    },
+    "homebrew": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tap_repository", "tap", "formula", "desc", "depends_on", "install"],
+      "properties": {
+        "tap_repository": {
+          "description": "GitHub repo that holds the tap. Homebrew requires the homebrew- prefix.",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9-]+/homebrew-[a-z0-9-]+$"
+        },
+        "tap": {
+          "description": "The tap name users type: the repo with the homebrew- prefix dropped.",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9-]+/[a-z0-9-]+$"
+        },
+        "formula": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "desc": {
+          "description": "Formula desc. Homebrew audit: at most 80 characters, no leading article, no trailing period. No quote, backslash or hash so it stays a plain Ruby string.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "^(?!(A|An|The) )[^\"\\\\#]*[^.\"\\\\#]$"
+        },
+        "depends_on": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "contains": { "const": "node" },
+          "items": { "type": "string", "pattern": "^[a-z0-9@.+-]+$" }
+        },
+        "install": {
+          "type": "string",
+          "pattern": "^brew install [A-Za-z0-9-]+/[a-z0-9-]+/[a-z][a-z0-9-]*$"
+        }
+      }
+    },
+    "npx": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command"],
+      "properties": {
+        "command": {
+          "description": "Secondary path with no global install: run the default branch straight from GitHub.",
+          "type": "string",
+          "pattern": "^npx github:[A-Za-z0-9-]+/[A-Za-z0-9._-]+$"
+        }
+      }
+    }
+  }
+}

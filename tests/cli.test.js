@@ -11,7 +11,8 @@ import {
   helpText,
   main,
   parseCliArgs,
-  parseReportText
+  parseReportText,
+  playwrightMissingMessage
 } from "../src/cli.js";
 
 const fixture = JSON.parse(readFileSync(new URL("./fixtures/cli-report.json", import.meta.url), "utf8"));
@@ -169,10 +170,7 @@ describe("main", () => {
     const missingLibCode = await main([], {
       ...missingLib,
       loadPlaywright: async () => {
-        throw new CliError(
-          "Playwright is not installed. From a checkout run `pnpm exec playwright install chromium`. Or run `tells --server-only` to call GET /api/check with no browser. The README documents a live browser pass.",
-          EXIT.RUN_FAILED
-        );
+        throw new CliError(playwrightMissingMessage(), EXIT.RUN_FAILED);
       }
     });
     expect(missingLibCode).toBe(EXIT.RUN_FAILED);

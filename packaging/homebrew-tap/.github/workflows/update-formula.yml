@@ -1,0 +1,65 @@
+# Keeps Formula/tells.rb on the latest blowhorn-tells release from the public npm registry.
+# Bootstrap copy: the source of this file is packaging/homebrew-tap/ in blowhorn-ai/tells.
+#
+# No npm token, no PAT and no cross-repo secret: the registry and blowhorn-ai/tells are public,
+# and the only write is this repo's own GITHUB_TOKEN pushing the formula commit.
+
+name: Update formula
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 */6 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-formula
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # Checks this tap out into the workspace, links it as the blowhorn-ai/tap tap, and lets the
+      # final push authenticate with this repo's GITHUB_TOKEN.
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@63a2d4d8d4193eab3e62b1b782ff3ab8408f5b29 # 2026.11.09.1
+        with:
+          token: ${{ github.token }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      # A plain clone outside the workspace: setup-homebrew owns the workspace, and a second
+      # actions/checkout would add a second git auth header next to the one it set.
+      - name: Render Formula/tells.rb from the latest npm release
+        id: render
+        run: |
+          git clone --quiet --depth 1 --branch master https://github.com/blowhorn-ai/tells.git "$RUNNER_TEMP/tells"
+          release="$(node "$RUNNER_TEMP/tells/scripts/render-homebrew-formula.mjs" --from-npm --out Formula/tells.rb)"
+          echo "release=$release" >> "$GITHUB_OUTPUT"
+          if [ -n "$(git status --porcelain -- Formula/tells.rb)" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Formula/tells.rb now renders $release."
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Formula/tells.rb is already $release."
+          fi
+      - name: Install, test and audit the formula
+        if: steps.render.outputs.changed == 'true'
+        run: |
+          brew install --formula blowhorn-ai/tap/tells
+          brew test blowhorn-ai/tap/tells
+          brew audit --formula blowhorn-ai/tap/tells
+      - name: Commit and push
+        if: steps.render.outputs.changed == 'true'
+        env:
+          RELEASE: ${{ steps.render.outputs.release }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Formula/tells.rb
+          git commit -m "$RELEASE"
+          git push origin HEAD

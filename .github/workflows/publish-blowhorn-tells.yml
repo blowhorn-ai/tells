@@ -1,0 +1,67 @@
+# Publishes the blowhorn-tells npm package (the `tells` command) when a GitHub release is
+# published. Release Drafter drafts v<semver> releases on master; publishing that draft runs this.
+#
+# Authentication is npm trusted publishing (OIDC). There is no npm token in this workflow or in
+# repo secrets. npm must trust this exact workflow, configured on npmjs.com at
+# Packages > blowhorn-tells > Settings > Trusted publishing:
+#   Publisher: GitHub Actions
+#   Organization or user: blowhorn-ai
+#   Repository: tells
+#   Workflow filename: publish-blowhorn-tells.yml
+#   Environment name: (leave blank)
+#   Allowed actions: tick `npm publish` (new configurations only allow `npm stage publish` by default)
+# npm only offers that setting once the package exists, and a new configuration expires unless it
+# publishes within 2 days. The README "Release" section has the first-publish steps.
+
+name: Publish blowhorn-tells
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish-blowhorn-tells
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Require an npm CLI that supports trusted publishing (11.5.1 or later)
+        run: |
+          node -e '
+            const [major, minor, patch] = process.argv[1].split(".").map(Number);
+            const ok = major > 11 || (major === 11 && (minor > 5 || (minor === 5 && patch >= 1)));
+            if (!ok) { console.error(`npm ${process.argv[1]} cannot use trusted publishing; need 11.5.1 or later.`); process.exit(1); }
+          ' "$(npm --version)"
+      - name: Install dependencies
+        run: corepack enable && pnpm install --frozen-lockfile
+      - name: Read the package version from the release tag
+        id: version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: node scripts/release-version.mjs "$TAG" >> "$GITHUB_OUTPUT"
+      - name: Set the package version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: npm version "$VERSION" --no-git-tag-version --allow-same-version
+      - name: Syntax check
+        run: pnpm check
+      - name: Unit tests
+        run: pnpm test
+      - name: Publish to npm with provenance
+        env:
+          DIST_TAG: ${{ steps.version.outputs.dist_tag }}
+        run: npm publish --provenance --access public --tag "$DIST_TAG"
