@@ -30,11 +30,12 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          ref: ${{ github.event.release.tag_name }}
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -52,6 +53,7 @@ jobs:
         id: version
         env:
           TAG: ${{ github.event.release.tag_name }}
+          GITHUB_PRERELEASE: ${{ github.event.release.prerelease }}
         run: node scripts/release-version.mjs "$TAG" >> "$GITHUB_OUTPUT"
       - name: Set the package version
         env:

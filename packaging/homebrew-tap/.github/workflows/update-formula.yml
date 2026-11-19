@@ -8,6 +8,11 @@ name: Update formula
 
 on:
   workflow_dispatch:
+    inputs:
+      tells_ref:
+        description: Git ref of blowhorn-ai/tells to render the formula from. Defaults to the v tag that matches the npm latest version.
+        required: false
+        type: string
   schedule:
     - cron: '23 */6 * * *'
 
@@ -36,8 +41,12 @@ jobs:
       # actions/checkout would add a second git auth header next to the one it set.
       - name: Render Formula/tells.rb from the latest npm release
         id: render
+        env:
+          TELLS_REF: ${{ inputs.tells_ref }}
         run: |
-          git clone --quiet --depth 1 --branch master https://github.com/blowhorn-ai/tells.git "$RUNNER_TEMP/tells"
+          version="$(npm view blowhorn-tells version)"
+          ref="${TELLS_REF:-v${version}}"
+          git clone --quiet --depth 1 --branch "$ref" https://github.com/blowhorn-ai/tells.git "$RUNNER_TEMP/tells"
           release="$(node "$RUNNER_TEMP/tells/scripts/render-homebrew-formula.mjs" --from-npm --out Formula/tells.rb)"
           echo "release=$release" >> "$GITHUB_OUTPUT"
           if [ -n "$(git status --porcelain -- Formula/tells.rb)" ]; then

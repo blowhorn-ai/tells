@@ -23,15 +23,24 @@ export function versionFromTag(tag) {
   return tag.slice(1);
 }
 
-// A prerelease (0.4.0-rc.1) must not become what `npm i -g` installs by default.
-export function distTagFor(version) {
+// A prerelease must not become what `npm i -g` installs by default. A semver
+// prerelease (0.4.0-rc.1) always goes to next. A GitHub release marked prerelease
+// also goes to next, even when the tag itself is a stable semver (v0.4.0).
+export function distTagFor(version, githubPrerelease = false) {
+  if (githubPrerelease) return "next";
   return SEMVER.exec(assertVersion(version))[4] === undefined ? "latest" : "next";
+}
+
+function isGitHubPrerelease(argv, env = process.env) {
+  return argv.includes("--github-prerelease") || env.GITHUB_PRERELEASE === "true";
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   try {
-    const version = versionFromTag(process.argv[2]);
-    process.stdout.write(`version=${version}\ndist_tag=${distTagFor(version)}\n`);
+    const argv = process.argv.slice(2);
+    const tag = argv.find((arg) => arg !== "--github-prerelease");
+    const version = versionFromTag(tag);
+    process.stdout.write(`version=${version}\ndist_tag=${distTagFor(version, isGitHubPrerelease(argv))}\n`);
   } catch (error) {
     process.stderr.write(`${error.message}\n`);
     process.exit(1);

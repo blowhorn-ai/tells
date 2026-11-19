@@ -22,7 +22,7 @@ tells --server-only
 `.github/workflows/update-formula.yml` runs every six hours and on demand (Actions > Update formula > Run workflow). It:
 
 1. reads the latest `blowhorn-tells` version and its tarball from the public npm registry, and checks the tarball against the registry's sha512 integrity,
-2. renders `Formula/tells.rb` with `scripts/render-homebrew-formula.mjs` from [blowhorn-ai/tells](https://github.com/blowhorn-ai/tells), which reads the package, tap and formula names from `schemas/cli-release.json`,
+2. clones [blowhorn-ai/tells](https://github.com/blowhorn-ai/tells) at the `v<version>` tag that matches that npm release (or a `tells_ref` you pass when running the workflow by hand) and renders `Formula/tells.rb` with `scripts/render-homebrew-formula.mjs`, which reads the package, tap and formula names from `schemas/cli-release.json`,
 3. if the formula changed, runs `brew install`, `brew test` and `brew audit` on it, then commits `tells <version>` and pushes.
 
 It uses only this repo's `GITHUB_TOKEN` (`contents: write`). There is no npm token and no cross-repo secret. GitHub turns off scheduled workflows in a public repo after 60 days without activity; if that happens, re-enable the workflow under Actions or run it by hand after a release.

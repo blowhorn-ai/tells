@@ -243,6 +243,8 @@ describe("release tag to npm version", () => {
     expect(distTagFor("0.3.12")).toBe("latest");
     expect(distTagFor("1.0.0-rc.1")).toBe("next");
     expect(distTagFor("1.0.0+build.5")).toBe("latest");
+    expect(distTagFor("0.3.12", true)).toBe("next");
+    expect(distTagFor("1.0.0-rc.1", true)).toBe("next");
   });
 
   it.each(["0.3.12", "v0.3", "v01.2.3", "release-0.3.12", "v0.3.12 ", "", undefined])("rejects %j", (tag) => {
@@ -253,6 +255,10 @@ describe("release tag to npm version", () => {
     const script = join(root, "scripts/release-version.mjs");
     const good = await runCommand(process.execPath, [script, "v0.3.12"]);
     expect(good).toEqual({ code: 0, stdout: "version=0.3.12\ndist_tag=latest\n", stderr: "" });
+    const pre = await runCommand(process.execPath, [script, "v0.3.12", "--github-prerelease"]);
+    expect(pre).toEqual({ code: 0, stdout: "version=0.3.12\ndist_tag=next\n", stderr: "" });
+    const preEnv = await runCommand(process.execPath, [script, "v0.3.12"], { env: { ...process.env, GITHUB_PRERELEASE: "true" } });
+    expect(preEnv).toEqual({ code: 0, stdout: "version=0.3.12\ndist_tag=next\n", stderr: "" });
     const bad = await runCommand(process.execPath, [script, "latest"]);
     expect(bad.code).toBe(1);
     expect(bad.stdout).toBe("");
