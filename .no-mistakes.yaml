@@ -12,8 +12,8 @@
 # not enable these commands on a private fork's CI minutes.
 
 commands:
-  lint: export PATH="$HOME/.local/bin:$PATH" && corepack enable && pnpm check
-  test: export PATH="$HOME/.local/bin:$PATH" && corepack enable && pnpm test
+  lint: export PATH="$HOME/.local/node/bin:$HOME/.local/bin:$PATH" && corepack enable && pnpm install --frozen-lockfile && pnpm check
+  test: export PATH="$HOME/.local/node/bin:$HOME/.local/bin:$PATH" && corepack enable && pnpm install --frozen-lockfile && pnpm test
 
 test:
   instructions: |
