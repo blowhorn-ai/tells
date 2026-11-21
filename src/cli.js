@@ -28,6 +28,11 @@ export function releaseManifest() {
   return JSON.parse(readFileSync(new URL("../schemas/cli-release.json", import.meta.url), "utf8"));
 }
 
+// The version is whatever package.json says. The publish workflow rewrites it from the release tag.
+export function packageVersion() {
+  return JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
+}
+
 export function helpText(manifest = releaseManifest()) {
   return `tells - run Blowhorn Tells and print the report
 
@@ -40,6 +45,7 @@ Usage:
   tells [--url <url>] [--timeout <ms>] [--compact]
   tells --server-only [--url <url>] [--timeout <ms>] [--compact]
   tells --help
+  tells --version
 
 The default run opens <url> in headless Chromium through Playwright and prints
 the JSON in [data-tells-report="raw"] (the POST /api/report body,
@@ -55,7 +61,7 @@ Stdout is the JSON only. Stderr is one line: "<classification> score=<n>".
 The command does not write the report to disk.
 
 Exit codes:
-  0  classification likely_human, or --help / -h (usage on stdout)
+  0  classification likely_human, or --help / -h or --version / -V (output on stdout)
   1  usage error
   2  the run failed (browser, network, timeout, or a body that is not schema_version 1)
   3  classification suspicious
@@ -74,6 +80,7 @@ export function parseCliArgs(argv) {
       strict: true,
       options: {
         help: { type: "boolean", short: "h" },
+        version: { type: "boolean", short: "V" },
         url: { type: "string" },
         timeout: { type: "string" },
         "server-only": { type: "boolean" },
@@ -86,6 +93,9 @@ export function parseCliArgs(argv) {
 
   if (parsed.values.help) {
     return { help: true };
+  }
+  if (parsed.values.version) {
+    return { version: true };
   }
 
   const url = parsed.values.url ?? DEFAULT_URL;
@@ -258,6 +268,11 @@ export async function main(argv, io = {}) {
 
   if (args.help) {
     stdout(helpText());
+    return EXIT.LIKELY_HUMAN;
+  }
+
+  if (args.version) {
+    stdout(packageVersion());
     return EXIT.LIKELY_HUMAN;
   }
 

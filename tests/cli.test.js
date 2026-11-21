@@ -29,6 +29,11 @@ function capture() {
 }
 
 describe("parseCliArgs", () => {
+  it("recognizes --version and -V", () => {
+    expect(parseCliArgs(["--version"])).toEqual({ version: true });
+    expect(parseCliArgs(["-V"])).toEqual({ version: true });
+  });
+
   it("defaults to the public site and a browser run", () => {
     const args = parseCliArgs([]);
     expect(args).toMatchObject({
@@ -61,12 +66,23 @@ describe("parseCliArgs", () => {
     expect(() => parseCliArgs(["report.json"])).toThrow();
   });
 
+  it("prints the package.json version and exits 0 for --version and -V", async () => {
+    const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+    for (const flag of ["--version", "-V"]) {
+      const io = capture();
+      const code = await main([flag], io);
+      expect(code).toBe(EXIT.LIKELY_HUMAN);
+      expect(io.out).toEqual([version]);
+      expect(io.err).toEqual([]);
+    }
+  });
+
   it("prints help and exits 0", async () => {
     const io = capture();
     const code = await main(["--help"], io);
     expect(code).toBe(EXIT.LIKELY_HUMAN);
     expect(io.out.join("\n")).toBe(helpText());
-    expect(io.out[0]).toContain("0  classification likely_human, or --help / -h");
+    expect(io.out[0]).toContain("0  classification likely_human, or --help / -h or --version / -V");
     expect(io.out[0]).toContain("3  classification suspicious");
     expect(io.out[0]).toContain("4  classification likely_bot");
     expect(io.err).toEqual([]);

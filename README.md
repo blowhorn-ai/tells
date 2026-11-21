@@ -103,7 +103,7 @@ Start `pnpm dev` first when the URL is local. If Playwright or Chromium is missi
 
 | Exit | Meaning |
 |---|---|
-| 0 | `likely_human`, or `--help` / `-h` (usage on stdout) |
+| 0 | `likely_human`, or `--help` / `-h` or `--version` / `-V` (output on stdout) |
 | 1 | Usage error |
 | 2 | The run failed, or the body is not `schema_version` 1 |
 | 3 | `suspicious` |

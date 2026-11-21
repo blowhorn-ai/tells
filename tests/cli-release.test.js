@@ -94,7 +94,8 @@ describe("package.json", () => {
     expect(pkg.private).toBeUndefined();
     expect(pkg.name).toBe(manifest.package.name);
     expect(Object.keys(pkg.bin)).toEqual([manifest.package.bin]);
-    expect(pkg.bin[manifest.package.bin].replace(/^\.\//, "")).toBe(manifest.package.entry);
+    // npm rewrites "./bin/tells.js" to "bin/tells.js" and warns on publish, so require the normalized form.
+    expect(pkg.bin[manifest.package.bin]).toBe(manifest.package.entry);
     expect(pkg.license).toBe(manifest.package.license);
     expect(pkg.homepage).toBe(manifest.package.homepage);
     expect(pkg.description).toBe(manifest.package.description);
@@ -177,6 +178,21 @@ describe("packed package", () => {
     expect(result.stdout).toContain("Usage:");
     expect(result.stderr).toBe("");
   });
+
+  it.skipIf(process.platform === "win32")("prints the package version for tells --version", async () => {
+    const result = await runCommand(manifest.package.bin, ["--version"], { env: childEnv(join(prefix, "bin")) });
+    expect(result.code).toBe(0);
+    expect(result.stdout.trim()).toBe(pkg.version);
+    expect(result.stderr).toBe("");
+  });
+
+  it("packs and dry-run publishes without an invalid bin warning", async () => {
+    for (const args of [["pack", "--dry-run"], ["publish", "--dry-run"]]) {
+      const { stderr } = await run("npm", args, { cwd: root, env: childEnv(), encoding: "utf8" });
+      expect(stderr).not.toMatch(/was invalid and removed/);
+      expect(stderr).not.toMatch(/bin\[/);
+    }
+  }, 60_000);
 
   it.skipIf(process.platform === "win32")("runs --server-only with no Playwright installed", async () => {
     expect(existsSync(join(prefix, "lib/node_modules/playwright"))).toBe(false);

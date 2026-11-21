@@ -20,7 +20,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
-    "tells": "./bin/tells.js"
+    "tells": "bin/tells.js"
   },
   "files": [
     "bin/tells.js",
