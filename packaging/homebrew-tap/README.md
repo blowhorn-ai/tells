@@ -20,7 +20,7 @@ brew install blowhorn-ai/tap/tells
 tells --server-only
 ```
 
-The npm package is [`blowhorn-tells`](https://www.npmjs.com/package/blowhorn-tells); the command it puts on PATH is `tells`. The Homebrew formula installs that package from the npm registry once an npm release is newer than the Git tag the formula currently pins, and links the `tells` command. `tells --help` lists the flags and exit codes; the [Tells README](https://github.com/blowhorn-ai/tells#cli) documents the output.
+The npm package is [`blowhorn-tells`](https://www.npmjs.com/package/blowhorn-tells); the command it puts on PATH is `tells`. The Homebrew formula installs that package from the npm registry once an npm release is the same as or newer than the Git tag the formula currently pins, and links the `tells` command. `tells --help` lists the flags and exit codes; the [Tells README](https://github.com/blowhorn-ai/tells#cli) documents the output.
 
 `--server-only` needs nothing else. The default browser run loads Playwright, which a Homebrew install cannot find. For browser runs install with npm instead: `npm i -g blowhorn-tells playwright && npx playwright install chromium`.
 
@@ -31,7 +31,7 @@ The npm package is [`blowhorn-tells`](https://www.npmjs.com/package/blowhorn-tel
 `.github/workflows/update-formula.yml` runs every six hours and on demand (Actions > Update formula > Run workflow). It:
 
 1. reads the latest `blowhorn-tells` version and its tarball from the public npm registry, and checks the tarball against the registry's sha512 integrity,
-2. leaves the formula unchanged when that version is npm's staged-publishing placeholder, or is not newer than the version already in `Formula/tells.rb`,
+2. leaves the formula unchanged when that version is npm's staged-publishing placeholder, or is older than the version already in `Formula/tells.rb`; an equal or newer release is rendered from its npm tarball, including when you pass `tells_ref`,
 3. otherwise clones [blowhorn-ai/tells](https://github.com/blowhorn-ai/tells) at the `v<version>` tag that matches that npm release (or a `tells_ref` you pass when running the workflow by hand) and renders `Formula/tells.rb` with `scripts/render-homebrew-formula.mjs`, which reads the package, tap and formula names from `schemas/cli-release.json`,
 4. if the formula changed, runs `brew install`, `brew test` and `brew audit` on it, then commits `tells <version>` and pushes.
 
