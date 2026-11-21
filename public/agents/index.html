@@ -112,7 +112,7 @@ tells --server-only
 brew install blowhorn-ai/tap/tells
 tells</code></pre>
       <p>Stdout is only the body. Stderr is <code>&lt;classification&gt; score=&lt;n&gt;</code>.
-        Exit 0 is <code>likely_human</code> or <code>--help</code>, 3 is <code>suspicious</code>, 4 is <code>likely_bot</code>,
+        Exit 0 is <code>likely_human</code>, <code>--help</code> or <code>--version</code>, 3 is <code>suspicious</code>, 4 is <code>likely_bot</code>,
         2 means the run failed, and 1 is a usage error. A headless Playwright run is expected to
         exit 4. <code>--server-only</code> prints <code>GET /api/check</code> and needs no browser.
         Playwright is optional and no install adds it; after the npm install,

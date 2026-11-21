@@ -16,8 +16,8 @@
   `npx github:blowhorn-ai/tells`. From a checkout: `node bin/tells.js`.
   Stdout is the schema_version 1 JSON (the page report, or GET /api/check with
   --server-only). Stderr is "<classification> score=<n>". Exit 0 is
-  likely_human, or --help / -h. Exit 3 is suspicious, 4 is likely_bot, 2 is a
-  failed run, 1 is usage. The command does not save the report. Playwright is
+  likely_human, or --help / -h or --version / -V. Exit 3 is suspicious, 4 is
+  likely_bot, 2 is a failed run, 1 is usage. The command does not save the report. Playwright is
   optional and no install adds it; --server-only needs no browser. After the
   npm install, `npm i -g playwright && npx playwright install chromium`
   enables the browser run.
