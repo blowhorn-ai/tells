@@ -37,9 +37,10 @@ function withChange(change) {
   return copy;
 }
 
-// Node on PATH for the bin's `#!/usr/bin/env node`, and no npm_config_* leaking in from pnpm.
+// Node on PATH for the bin's `#!/usr/bin/env node`, no npm_config_* leaking in from pnpm,
+// and no CI OIDC credentials an npm child could exchange for a publish token.
 function childEnv(extraPath) {
-  const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^npm_/i.test(key)));
+  const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^(npm_|ACTIONS_ID_TOKEN_)/i.test(key)));
   env.PATH = [extraPath, dirname(process.execPath), process.env.PATH].filter(Boolean).join(delimiter);
   return env;
 }
@@ -187,7 +188,8 @@ describe("packed package", () => {
   });
 
   it("packs and dry-run publishes without an invalid bin warning", async () => {
-    for (const args of [["pack", "--dry-run"], ["publish", "--dry-run"]]) {
+    // The fixture server stands in for the registry, so the dry run never sees npm's published versions.
+    for (const args of [["pack", "--dry-run"], ["publish", "--dry-run", "--registry", serverUrl]]) {
       const { stderr } = await run("npm", args, { cwd: root, env: childEnv(), encoding: "utf8" });
       expect(stderr).not.toMatch(/was invalid and removed/);
       expect(stderr).not.toMatch(/bin\[/);
