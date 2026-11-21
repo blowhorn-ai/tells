@@ -161,7 +161,7 @@ On Cloudflare the client address always comes from `cf-connecting-ip`. Behind an
 
 ## Release
 
-Release Drafter keeps a draft `v<semver>` release on `master`. Publishing it runs `.github/workflows/publish-blowhorn-tells.yml`, which checks out that release tag, sets the package version from it (`v0.3.12` publishes `0.3.12`; a semver prerelease such as `v0.4.0-rc.1`, or a GitHub release marked prerelease, goes to the `next` dist-tag), runs `pnpm check` and `pnpm test`, and runs `npm publish --provenance --access public`. A tag that is not `v` plus semver fails the run before anything is published (`scripts/release-version.mjs`). The `version` in `package.json` tracks the latest tag but the tag wins at publish time.
+Release Drafter keeps a draft `v<semver>` release on `master`. Publishing it runs `.github/workflows/publish-blowhorn-tells.yml`, which checks out that release tag, sets the package version from it (`v0.3.12` publishes `0.3.12`; a semver prerelease such as `v0.4.0-rc.1`, or a GitHub release marked prerelease, goes to the `next` dist-tag), runs `pnpm check` and `pnpm test`, and runs `npm publish --provenance --access public`. If npm already has that version, the run skips the publish and still succeeds. A tag that is not `v` plus semver fails the run before anything is published (`scripts/release-version.mjs`). The `version` in `package.json` tracks the latest tag but the tag wins at publish time.
 
 The workflow authenticates with npm trusted publishing (OIDC), so there is no npm token in the repo or its secrets. npm offers the trusted publisher setting only once a package exists, so the first release needs a maintainer once:
 
