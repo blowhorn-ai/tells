@@ -45,6 +45,28 @@ jobs:
           TELLS_REF: ${{ inputs.tells_ref }}
         run: |
           version="$(npm view blowhorn-tells version)"
+          # npm's first-publish placeholder is not a real release.
+          if [ "$version" = "0.0.0-stage" ]; then
+            echo "npm latest is the staged-publishing placeholder; leaving Formula/tells.rb unchanged."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Read the version already in the formula (a version field, a Git tag, or an npm tarball URL).
+          current="$(grep -E '^[[:space:]]*version[[:space:]]+"' Formula/tells.rb | head -1 | sed -E 's/.*"([^"]+)".*/\1/')"
+          if [ -z "$current" ]; then
+            current="$(grep -E 'tag:[[:space:]]+"' Formula/tells.rb | head -1 | sed -E 's/.*tag:[[:space:]]+"v?([^"]+)".*/\1/')"
+          fi
+          if [ -z "$current" ]; then
+            current="$(grep -oE 'blowhorn-tells-[0-9][^"/]+\.tgz' Formula/tells.rb | head -1 | sed -E 's/blowhorn-tells-//;s/\.tgz//')"
+          fi
+          if [ -n "$current" ]; then
+            newest="$(printf '%s\n%s\n' "$current" "$version" | sort -V | tail -n 1)"
+            if [ "$version" = "$current" ] || [ "$newest" != "$version" ]; then
+              echo "npm latest $version is not newer than formula $current; leaving Formula/tells.rb unchanged."
+              echo "changed=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
           ref="${TELLS_REF:-v${version}}"
           git clone --quiet --depth 1 --branch "$ref" https://github.com/blowhorn-ai/tells.git "$RUNNER_TEMP/tells"
           release="$(node "$RUNNER_TEMP/tells/scripts/render-homebrew-formula.mjs" --from-npm --out Formula/tells.rb)"
