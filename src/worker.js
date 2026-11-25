@@ -2,6 +2,13 @@ import { HttpError, json, JSON_HEADERS, readJsonBody, reportCorsHeaders } from "
 import { API_RATE_LIMIT_RETRY_AFTER_SECONDS, checkApiRateLimit } from "./rate-limit.js";
 import { collectServer, collectServerBasics } from "./server-signals.js";
 import {
+  collectionOptedOut,
+  forgetReport,
+  persistReport,
+  pruneReports,
+  RUN_HEADER
+} from "./report-catalog.js";
+import {
   deriveBehavior,
   deriveFingerprintStability,
   deriveInteraction,
@@ -62,7 +69,7 @@ export default {
           stability
         );
         const detections = detectionMatrix(server, client);
-        return json({
+        const body = {
           schema_version: SCHEMA_VERSION,
           ok: true,
           receivedAt: new Date().toISOString(),
@@ -70,7 +77,20 @@ export default {
           server,
           client,
           detections
-        }, 200, {}, reportCorsHeaders(request));
+        };
+        // Collection is on until the visitor sets the opt-out. A run that opted out is not collected or kept.
+        if (!collectionOptedOut(request)) {
+          const stored = persistReport(env, body, request.headers.get(RUN_HEADER));
+          if (typeof ctx?.waitUntil === "function") ctx.waitUntil(stored);
+        }
+        return json(body, 200, {}, reportCorsHeaders(request));
+      }
+
+      // The visitor turned collection off after the page had posted: remove this run's record.
+      if (url.pathname === "/api/report/forget" && request.method === "POST") {
+        const forgotten = await readJsonBody(request, 1024);
+        await forgetReport(env, forgotten?.run_id);
+        return json({ ok: true }, 200, {}, reportCorsHeaders(request));
       }
 
       if (url.pathname.startsWith("/api/")) {
@@ -83,5 +103,12 @@ export default {
       const headers = url.pathname === "/api/report" ? reportCorsHeaders(request) : JSON_HEADERS;
       return json({ ok: false, error: String(error?.message || error) }, status, {}, headers);
     }
+  },
+
+  // Daily: delete catalog rows past their 90 day retention.
+  async scheduled(_controller, env, ctx) {
+    const pruned = pruneReports(env);
+    if (typeof ctx?.waitUntil === "function") ctx.waitUntil(pruned);
+    await pruned;
   }
 };

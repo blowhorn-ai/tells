@@ -115,9 +115,17 @@ A stock headless browser is expected to exit 4. That means the check finished. `
 
 This is not a "nothing leaves your browser" checker. Scoring happens on the server, so the readings have to get there. This is what happens on each run:
 
-- The page runs its checks on load and posts the readings to `/api/report`. The Worker scores them and returns the report. It writes nothing to storage, and Workers observability is off in `wrangler.json`.
+- The page runs its checks on load and posts the readings to `/api/report`. The Worker scores them and returns the report. Unless the visitor opts out, it also keeps a redacted copy of the report for 90 days (see below). Workers observability is off in `wrangler.json`, so there are no request logs.
 - The Worker sends the visitor's IP address, and nothing else, to ipapi.is to check for datacenter, proxy, VPN and Tor addresses. `/api/check` and `/api/report` both do this; `/api/ping` does not. Set `IP_INTEL_PROVIDER=none` to turn it off.
 - The WebRTC check asks Google's public STUN server (`stun.l.google.com`) for the browser's address, as any WebRTC page can.
+
+### The reports catalog
+
+Collection is on by default. The Worker keeps one redacted row per run in a Cloudflare D1 table (`migrations/0001_reports.sql`): the verdict score and classification, the reason ids, the detection rows, the schema and check catalog versions, a browser and operating system family, the country, a datacenter flag and the time. It never keeps the IP address, headers, WebRTC addresses, fingerprint values, the page address or the referrer. See `src/report-catalog.js`; the allow list there is the whole record. Rows are deleted after 90 days by a daily cron (`scheduled`), and a run with the same run id never makes a second row.
+
+A visitor opts out in the page footer ("Keep a redacted copy of my reports", kept in this browser only), with `?collect=off` on the page address, with `tells --no-collect`, or with a browser sending Global Privacy Control. An opted-out run is not stored. Turning the footer setting off also removes the copy of the run already posted on that page (`POST /api/report/forget`).
+
+Storage is optional and off until the D1 binding exists. To turn it on: `wrangler d1 create blowhorn-tells-reports`, add the `d1_databases` entry with the binding name `REPORTS` to `wrangler.json`, then `wrangler d1 migrations apply blowhorn-tells-reports --remote`. Without the binding nothing is kept. On the Workers Free plan D1 includes 5 GB and 100,000 row writes a day, and going over makes writes fail rather than bill; the Worker ignores a failed write.
 
 The page footer says the same thing. If any of this changes, update the footer and this section in the same change.
 

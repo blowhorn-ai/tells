@@ -1,5 +1,6 @@
 import { setupChallenge } from "./challenge.js";
 import { setupButtons } from "./controls.js";
+import { setupCollectionToggle } from "./collection-ui.js";
 import { runChecks } from "./report.js";
 import {
   BEHAVIOR_CHECKPOINTS_MS,
@@ -21,6 +22,7 @@ function boot() {
   setupSensorProbe(state);
   setupChallenge(state, renderRuntime, runChecks);
   setupButtons(state, runChecks, setStatus);
+  setupCollectionToggle();
   renderRuntime(state);
 
   runChecks(state);

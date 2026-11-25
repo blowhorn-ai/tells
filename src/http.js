@@ -6,13 +6,13 @@ export const JSON_HEADERS = {
   ...JSON_CONTENT_HEADERS,
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type"
+  "Access-Control-Allow-Headers": "Content-Type, X-Tells-Collect, X-Tells-Run"
 };
 
 export const REPORT_JSON_HEADERS = {
   ...JSON_CONTENT_HEADERS,
   "Access-Control-Allow-Methods": "POST,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type"
+  "Access-Control-Allow-Headers": "Content-Type, X-Tells-Collect, X-Tells-Run"
 };
 
 export class HttpError extends Error {

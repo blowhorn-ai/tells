@@ -337,7 +337,11 @@
             <h2 class="footer-title" id="privacyTitle">What this page sends</h2>
             <ul>
               <li>When this page opens, it runs checks in your browser and sends the readings to this site's server, which scores them and sends the result back.</li>
-              <li>This site keeps no copy and no logs.</li>
+              <li>Unless you turn it off below, this site keeps a redacted copy of each report for 90 days so the checks can be reported on later: the score and verdict, which checks fired, your browser and operating system family, your country, and whether the address is a datacenter. It never keeps your IP address, headers, WebRTC addresses, fingerprint values, page address or referrer, and it keeps no logs. Only the Blowhorn team can read the copies.</li>
+              <li class="collect-setting">
+                <label for="collectToggle"><input type="checkbox" id="collectToggle" checked> Keep a redacted copy of my reports</label>
+                <span id="collectNote" class="collect-note" role="status"></span>
+              </li>
               <li>Two outside services see your IP address: the server sends it, and nothing else, to ipapi.is to spot proxies and VPNs, and the WebRTC check asks Google's public STUN server for your address.</li>
               <li>This page carries Google Analytics, the same tag as blowhorn.ai, so Google sees the visit and this page's address. There is no consent banner; this list is the disclosure.</li>
             </ul>
