@@ -3,8 +3,9 @@
 // candidates, no fingerprint values, no URLs and no referrer.
 
 import catalog from "../schemas/check-catalog.json" with { type: "json" };
+import { BUDGET, computeMode } from "./report-budget.js";
 
-export const RETENTION_DAYS = 90;
+export const RETENTION_DAYS = 90; // the longest retention; report-budget.js shortens it when the budget fills
 export const COLLECT_HEADER = "x-tells-collect";
 export const RUN_HEADER = "x-tells-run";
 
@@ -101,37 +102,80 @@ const COLUMNS = [
   "interaction_completed"
 ];
 
-// One row per run id: a retry never creates a second row. Storage is optional: without the REPORTS binding
-// nothing is kept. A failure to store never reaches the visitor.
+function dayOf(now) {
+  return now.toISOString().slice(0, 10);
+}
+
+// Reads today's ledger row and the raw bytes held. Returns null when either cannot be read: the caller then
+// writes nothing (fail closed).
+export async function readUsage(env, now = new Date()) {
+  try {
+    const day = (await env.REPORTS.prepare("SELECT accepted, d1_writes FROM ledger WHERE period = ?")
+      .bind(dayOf(now)).first()) || { accepted: 0, d1_writes: 0 };
+    const held = await env.REPORTS.prepare("SELECT v FROM state WHERE k = 'raw_held_bytes'").first();
+    return {
+      disabled: String(env.COLLECT_DISABLED || "") === "1",
+      ledgerOk: true,
+      day,
+      rawBytes: held?.v || 0,
+      monthClassA: 0
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+export async function currentMode(env, now = new Date()) {
+  if (!env?.REPORTS) return "off";
+  const usage = await readUsage(env, now);
+  return usage ? computeMode(usage) : "off";
+}
+
+function ledgerUpsert(env, period, accepted, writes) {
+  return env.REPORTS.prepare(
+    `INSERT INTO ledger (period, accepted, d1_writes) VALUES (?, ?, ?)
+     ON CONFLICT(period) DO UPDATE SET accepted = accepted + excluded.accepted, d1_writes = d1_writes + excluded.d1_writes`
+  ).bind(period, accepted, writes);
+}
+
+// One redacted row per run id; a retry never creates a second row and is not counted twice. Storage is
+// optional: without the REPORTS binding nothing is kept. A failure to store never reaches the visitor.
+// Returns "stored", "counted", or false.
 export async function persistReport(env, report, runId, now = new Date()) {
   if (!env?.REPORTS || !validRunId(runId)) return false;
   try {
+    const mode = await currentMode(env, now);
+    if (mode === "off") return false;
+    const period = dayOf(now);
+    if (mode === "count") {
+      await ledgerUpsert(env, period, 1, 1).run();
+      return "counted";
+    }
     const row = redactReport(report, runId, now);
     const marks = COLUMNS.map(() => "?").join(", ");
-    await env.REPORTS.prepare(`INSERT OR IGNORE INTO reports (${COLUMNS.join(", ")}) VALUES (${marks})`)
+    const inserted = await env.REPORTS.prepare(`INSERT OR IGNORE INTO reports (${COLUMNS.join(", ")}) VALUES (${marks})`)
       .bind(...COLUMNS.map((column) => row[column]))
       .run();
-    return true;
+    if (inserted?.meta?.changes === 0) return "stored";
+    await ledgerUpsert(env, period, 1, BUDGET.writesPerReport).run();
+    return "stored";
   } catch (_) {
     return false;
   }
 }
 
 // A visitor who turns collection off after the page already posted asks for the run's record to be removed.
-export async function forgetReport(env, runId) {
+// The total collected does not go down; the removal is counted separately.
+export async function forgetReport(env, runId, now = new Date()) {
   if (!env?.REPORTS || !validRunId(runId)) return false;
   try {
-    await env.REPORTS.prepare("DELETE FROM reports WHERE run_id = ?").bind(runId).run();
-    return true;
-  } catch (_) {
-    return false;
-  }
-}
-
-export async function pruneReports(env, now = new Date()) {
-  if (!env?.REPORTS) return false;
-  try {
-    await env.REPORTS.prepare("DELETE FROM reports WHERE expires_at < ?").bind(now.toISOString()).run();
+    const gone = await env.REPORTS.prepare("DELETE FROM reports WHERE run_id = ?").bind(runId).run();
+    if (gone?.meta?.changes > 0) {
+      await env.REPORTS.prepare(
+        `INSERT INTO ledger (period, removed, d1_writes) VALUES (?, 1, 2)
+         ON CONFLICT(period) DO UPDATE SET removed = removed + 1, d1_writes = d1_writes + 2`
+      ).bind(dayOf(now)).run();
+    }
     return true;
   } catch (_) {
     return false;

@@ -19,3 +19,18 @@ export function setupCollectionToggle() {
     describe();
   });
 }
+
+// The total number of reports collected, from the aggregate counter. Hidden until storage is on.
+export async function showCollectedTotal() {
+  const el = document.getElementById("collectTotal");
+  if (!el) return;
+  try {
+    const response = await fetch("/api/stats");
+    const stats = await response.json();
+    if (!stats.enabled) return;
+    el.textContent = `Reports collected so far: ${Number(stats.total_collected).toLocaleString("en-US")} (a sample of visitors, not the whole web).`;
+    el.hidden = false;
+  } catch (_) {
+    // The figure is optional.
+  }
+}

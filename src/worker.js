@@ -5,9 +5,10 @@ import {
   collectionOptedOut,
   forgetReport,
   persistReport,
-  pruneReports,
   RUN_HEADER
 } from "./report-catalog.js";
+import { BUDGET } from "./report-budget.js";
+import { collectionStats, compactReports, pruneReports } from "./report-store.js";
 import {
   deriveBehavior,
   deriveFingerprintStability,
@@ -79,11 +80,22 @@ export default {
           detections
         };
         // Collection is on until the visitor sets the opt-out. A run that opted out is not collected or kept.
-        if (!collectionOptedOut(request)) {
+        if (!collectionOptedOut(request) && JSON.stringify(rawClient).length <= BUDGET.maxReportBytes) {
           const stored = persistReport(env, body, request.headers.get(RUN_HEADER));
           if (typeof ctx?.waitUntil === "function") ctx.waitUntil(stored);
         }
         return json(body, 200, {}, reportCorsHeaders(request));
+      }
+
+      // The collected total, always visible on the page. Cached for a minute so reads stay inside the free budget.
+      if (url.pathname === "/api/stats" && request.method === "GET") {
+        const cache = typeof caches !== "undefined" ? caches.default : null;
+        const cacheKey = new Request(`${url.origin}/api/stats`);
+        const cached = cache ? await cache.match(cacheKey) : null;
+        if (cached) return cached;
+        const response = json(await collectionStats(env), 200, { "Cache-Control": "public, max-age=60" });
+        if (cache) ctx?.waitUntil?.(cache.put(cacheKey, response.clone()));
+        return response;
       }
 
       // The visitor turned collection off after the page had posted: remove this run's record.
@@ -105,10 +117,14 @@ export default {
     }
   },
 
-  // Daily: delete catalog rows past their 90 day retention.
-  async scheduled(_controller, env, ctx) {
-    const pruned = pruneReports(env);
-    if (typeof ctx?.waitUntil === "function") ctx.waitUntil(pruned);
-    await pruned;
+  // Hourly: aggregate waiting rows and write the hour's R2 object. At 03:xx UTC also prune past retention.
+  async scheduled(controller, env, ctx) {
+    const when = new Date(controller?.scheduledTime ?? Date.now());
+    const work = (async () => {
+      await compactReports(env, when);
+      if (when.getUTCHours() === 3) await pruneReports(env, when);
+    })();
+    if (typeof ctx?.waitUntil === "function") ctx.waitUntil(work);
+    await work;
   }
 };
