@@ -166,7 +166,7 @@ describe("compaction", () => {
   });
 
   it("splits a chunk that would need too many statements, each batch atomic", async () => {
-    const { env, d1 } = setup();
+    const { env, d1, r2 } = setup();
     const wide = (i) => report({
       verdict: { score: 10 + (i % 80), classification: "likely_bot", risk: "high",
         reasons: Array.from({ length: 6 }, (_, j) => ({ id: `r${i}_${j}`, severity: "high", points: 1 })) }
@@ -178,6 +178,11 @@ describe("compaction", () => {
     // Whatever is left waits for the next run, and the totals add up once it has run.
     for (let i = 0; i < 5; i += 1) await compactReports(env, T1);
     expect(d1.db.prepare("SELECT SUM(n) s FROM agg_counts WHERE dim = 'total'").get().s).toBe(200);
+    // R2 bookkeeping matches: every object written has its row, and the reports in the rows add up.
+    const rowsInD1 = d1.db.prepare("SELECT key, reports FROM raw_objects").all();
+    expect(new Set(rowsInD1.map((r) => r.key))).toEqual(new Set(r2.objects.keys()));
+    expect(rowsInD1.reduce((sum, r) => sum + r.reports, 0)).toBe(200);
+    expect(d1.db.prepare("SELECT SUM(r2_puts) p FROM ledger").get().p).toBe(r2.calls.put);
   });
 
   it("does nothing in off mode", async () => {
