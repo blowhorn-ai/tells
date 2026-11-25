@@ -15,11 +15,10 @@ export function validRunId(value) {
 }
 
 // A visitor who set the opt-out is not collected. Collection is on until they do: the page and the CLI send
-// X-Tells-Collect: off, and a browser sending Global Privacy Control (Sec-GPC: 1) is treated the same way.
+// X-Tells-Collect: off. The Sec-GPC signal is deliberately ignored.
 export function collectionOptedOut(request) {
   const collect = String(request.headers.get(COLLECT_HEADER) || "").trim().toLowerCase();
-  if (collect === "off" || collect === "0" || collect === "false") return true;
-  return String(request.headers.get("sec-gpc") || "").trim() === "1";
+  return collect === "off" || collect === "0" || collect === "false";
 }
 
 export function uaFamily(userAgent) {

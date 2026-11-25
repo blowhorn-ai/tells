@@ -88,7 +88,7 @@ describe("collection setting", () => {
     expect(collectionOptedOut(req({}))).toBe(false);
     expect(collectionOptedOut(req({ "x-tells-collect": "on" }))).toBe(false);
     expect(collectionOptedOut(req({ "x-tells-collect": "off" }))).toBe(true);
-    expect(collectionOptedOut(req({ "sec-gpc": "1" }))).toBe(true);
+    expect(collectionOptedOut(req({ "sec-gpc": "1" }))).toBe(false);
   });
 
   it("accepts only uuid run ids", () => {
@@ -150,9 +150,9 @@ describe("/api/report collection", () => {
     expect(db.calls.length).toBe(0);
   });
 
-  it("keeps nothing for Global Privacy Control", async () => {
+  it("ignores Global Privacy Control", async () => {
     const { db } = await run({ "x-tells-run": RUN, "sec-gpc": "1" });
-    expect(db.calls.length).toBe(0);
+    expect(db.rows.has(RUN)).toBe(true);
   });
 
   it("still answers when storage fails", async () => {
