@@ -73,51 +73,57 @@ function rawLine(row) {
   });
 }
 
-// Builds everything one chunk of rows changes in D1 as a single batch: the aggregates, the raw object records,
-// the state mark and the ledger. D1 runs a batch as one transaction, so it all commits or none of it does. A chunk
-// that would need too many statements is halved until it fits.
-function planChunk(env, rows, cutoff, objects, day) {
+// How many of the waiting rows go into one batch: halved until the aggregate cells plus the hour groups fit in
+// one D1 batch. Chosen before any R2 put, so every object written belongs to a chunk that commits its bookkeeping.
+function chunkSize(rows) {
   let size = rows.length;
   for (;;) {
-    const part = rows.slice(0, size);
     const cells = new Map();
-    const bump = (d, dim, k) => {
-      const id = `${d}\u0000${dim}\u0000${k}`;
-      cells.set(id, (cells.get(id) || 0) + 1);
-    };
-    for (const row of part) aggregateRow(row, bump);
-    const own = objects.filter((object) => object.ids.every((id) => part.some((row) => row.id === id)));
-    if (cells.size + own.length + 3 <= MAX_STATEMENTS || size === 1) {
-      const statements = [];
-      for (const [id, n] of cells) {
-        const [d, dim, k] = id.split("\u0000");
-        statements.push(env.REPORTS.prepare(
-          `INSERT INTO agg_counts (day, dim, k, n) VALUES (?, ?, ?, ?)
-           ON CONFLICT(day, dim, k) DO UPDATE SET n = n + excluded.n`
-        ).bind(d, dim, k, n));
-      }
-      for (const object of own) {
-        statements.push(env.REPORTS.prepare("INSERT OR REPLACE INTO raw_objects (key, hour, bytes, reports) VALUES (?, ?, ?, ?)")
-          .bind(object.key, object.hour, object.bytes, object.reports));
-      }
-      const maxId = part[part.length - 1].id;
-      statements.push(env.REPORTS.prepare("UPDATE reports SET state = 1 WHERE state = 0 AND rowid <= ? AND received_at < ?")
-        .bind(maxId, cutoff));
-      const bytes = own.reduce((sum, object) => sum + object.bytes, 0);
-      statements.push(env.REPORTS.prepare(
-        `INSERT INTO ledger (period, d1_writes) VALUES (?, ?)
-         ON CONFLICT(period) DO UPDATE SET d1_writes = d1_writes + excluded.d1_writes`
-      ).bind(day, cells.size + own.length + part.length * 2 + 2));
-      if (bytes > 0) {
-        statements.push(env.REPORTS.prepare(
-          `INSERT INTO state (k, v) VALUES ('raw_held_bytes', ?)
-           ON CONFLICT(k) DO UPDATE SET v = v + excluded.v`
-        ).bind(bytes));
-      }
-      return { statements, count: part.length, cells: cells.size, objects: own.length };
+    const hours = new Set();
+    for (const row of rows.slice(0, size)) {
+      aggregateRow(row, (d, dim, k) => cells.set(`${d}\u0000${dim}\u0000${k}`, 1));
+      hours.add(row.received_at.slice(0, 13));
     }
+    if (cells.size + hours.size + 4 <= MAX_STATEMENTS || size === 1) return size;
     size = Math.max(1, Math.floor(size / 2));
   }
+}
+
+// Everything one chunk changes in D1 as a single batch: the aggregates, the raw object records, the state mark
+// and the ledger. D1 runs a batch as one transaction, so it all commits or none of it does.
+function planChunk(env, part, cutoff, objects, day) {
+  const cells = new Map();
+  const bump = (d, dim, k) => {
+    const id = `${d}\u0000${dim}\u0000${k}`;
+    cells.set(id, (cells.get(id) || 0) + 1);
+  };
+  for (const row of part) aggregateRow(row, bump);
+  const statements = [];
+  for (const [id, n] of cells) {
+    const [d, dim, k] = id.split("\u0000");
+    statements.push(env.REPORTS.prepare(
+      `INSERT INTO agg_counts (day, dim, k, n) VALUES (?, ?, ?, ?)
+       ON CONFLICT(day, dim, k) DO UPDATE SET n = n + excluded.n`
+    ).bind(d, dim, k, n));
+  }
+  for (const object of objects) {
+    statements.push(env.REPORTS.prepare("INSERT OR REPLACE INTO raw_objects (key, hour, bytes, reports) VALUES (?, ?, ?, ?)")
+      .bind(object.key, object.hour, object.bytes, object.reports));
+  }
+  statements.push(env.REPORTS.prepare("UPDATE reports SET state = 1 WHERE state = 0 AND rowid <= ? AND received_at < ?")
+    .bind(part[part.length - 1].id, cutoff));
+  const bytes = objects.reduce((sum, object) => sum + object.bytes, 0);
+  statements.push(env.REPORTS.prepare(
+    `INSERT INTO ledger (period, d1_writes) VALUES (?, ?)
+     ON CONFLICT(period) DO UPDATE SET d1_writes = d1_writes + excluded.d1_writes`
+  ).bind(day, cells.size + objects.length + part.length * 2 + 2));
+  if (bytes > 0) {
+    statements.push(env.REPORTS.prepare(
+      `INSERT INTO state (k, v) VALUES ('raw_held_bytes', ?)
+       ON CONFLICT(k) DO UPDATE SET v = v + excluded.v`
+    ).bind(bytes));
+  }
+  return { statements, count: part.length, cells: cells.size, objects: objects.length };
 }
 
 export async function compactReports(env, now = new Date()) {
@@ -138,15 +144,17 @@ export async function compactReports(env, now = new Date()) {
     const found = await env.REPORTS.prepare(
       "SELECT rowid AS id, * FROM reports WHERE state = 0 AND received_at < ? ORDER BY rowid LIMIT ?"
     ).bind(cutoff, CHUNK).all();
-    const rows = found?.results || [];
-    if (rows.length === 0) break;
+    const waiting = found?.results || [];
+    if (waiting.length === 0) break;
+    const part = waiting.slice(0, chunkSize(waiting));
 
-    // Raw objects first. Each put is counted in the ledger right away, so a retry after a failed batch never
-    // hides an operation. The key depends only on the hour and the first row, so a retry overwrites it.
+    // Raw objects for exactly this chunk. Each put is counted in the ledger right away, so a retry after a
+    // failed batch never hides an operation. The key depends only on the hour and the first row, so a retry
+    // overwrites it.
     const objects = [];
     if (env.RAW && (mode === "normal" || mode === "tighten" || mode === "sample")) {
       const groups = new Map();
-      for (const row of rows) {
+      for (const row of part) {
         if (!keepRaw(mode, row.run_id, parseList(row.reasons).length)) continue;
         const hour = row.received_at.slice(0, 13);
         if (!groups.has(hour)) groups.set(hour, []);
@@ -160,16 +168,16 @@ export async function compactReports(env, now = new Date()) {
           `INSERT INTO ledger (period, d1_writes, r2_puts, r2_bytes) VALUES (?, 1, 1, ?)
            ON CONFLICT(period) DO UPDATE SET d1_writes = d1_writes + 1, r2_puts = r2_puts + 1, r2_bytes = r2_bytes + excluded.r2_bytes`
         ).bind(day, body.byteLength).run();
-        objects.push({ key, hour: `${hour}:00:00.000Z`, bytes: body.byteLength, reports: group.length, ids: group.map((row) => row.id) });
+        objects.push({ key, hour: `${hour}:00:00.000Z`, bytes: body.byteLength, reports: group.length });
       }
     }
 
-    const plan = planChunk(env, rows, cutoff, objects, day);
+    const plan = planChunk(env, part, cutoff, objects, day);
     await env.REPORTS.batch(plan.statements);
     total.compacted += plan.count;
     total.objects += plan.objects;
     total.cells += plan.cells;
-    if (rows.length < CHUNK && plan.count === rows.length) break;
+    if (waiting.length < CHUNK && part.length === waiting.length) break;
   }
   return total;
 }
