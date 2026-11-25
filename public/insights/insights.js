@@ -2,6 +2,7 @@ import { escapeHtml } from "/utils.js";
 
 const $ = (selector) => document.querySelector(selector);
 const NOTE = "This is a sample of visitors, not the whole web.";
+const CARD_VARIANTS = ["card-dispatch", "card-stamp", "card-plain", "card-field", "card-paper"];
 const params = new URLSearchParams(location.search);
 let windowDays = [7, 30, 90].includes(Number(params.get("window"))) ? Number(params.get("window")) : 30;
 let focusReason = null;
@@ -61,10 +62,12 @@ const renderers = {
   }
 };
 
-function cardHtml(card) {
+function cardHtml(card, index, cards) {
   const render = renderers[card.id];
   const permalink = `${location.origin}/insights/?window=${windowDays}#card-${card.id}`;
-  return `<article class="card card-paper insight" id="card-${card.id}" data-card="${card.id}" aria-labelledby="t-${card.id}">
+  let variant = CARD_VARIANTS[index % CARD_VARIANTS.length];
+  if (index === cards.length - 1 && variant === "card-plain") variant = "card-field";
+  return `<article class="card ${variant} insight" id="card-${card.id}" data-card="${card.id}" aria-labelledby="t-${card.id}">
     <p class="label">${escapeHtml(card.title)}</p>
     <h2 id="t-${card.id}">${escapeHtml(card.headline)}</h2>
     <div class="chart">${render ? render(card) : ""}</div>
@@ -83,7 +86,7 @@ function cardHtml(card) {
 function render() {
   const mount = $("#cards");
   if (!data || !data.enabled || data.empty) {
-    mount.innerHTML = `<section class="card card-paper"><h2>Not enough data yet</h2><p>The insights fill in as reports are collected. Come back soon. ${NOTE}</p></section>`;
+    mount.innerHTML = `<section class="card card-dispatch"><h2>Not enough data yet</h2><p>The insights fill in as reports are collected. Come back soon. ${NOTE}</p></section>`;
     return;
   }
   mount.innerHTML = data.cards.map(cardHtml).join("");

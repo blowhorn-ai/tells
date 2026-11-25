@@ -29,7 +29,7 @@
 .insights-page .big { font-family: "Bricolage Grotesque", system-ui, sans-serif; font-size: clamp(3rem, 8vw, 5rem); font-weight: 800; margin: 0; color: var(--teal-bright); line-height: 1; }
 .insights-page .big span { font-size: 0.5em; }
 .insights-page .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; list-style: none; margin: 0; padding: 0; }
-.insights-page .tiles li { background: rgba(0, 179, 159, var(--a)); color: var(--on-teal); border-radius: 8px; padding: 10px 8px; display: flex; flex-direction: column; align-items: center; }
+.insights-page .tiles li { background: linear-gradient(rgba(0, 179, 159, var(--a)), rgba(0, 179, 159, var(--a))), #A6EBDF; color: var(--on-teal); border-radius: 8px; padding: 10px 8px; display: flex; flex-direction: column; align-items: center; }
 .insights-page .as-table .tiles { display: block; }
 .insights-page .up { color: var(--yellow); }
 .insights-page .down { color: var(--teal-bright); }
@@ -38,8 +38,16 @@
 @media (prefers-reduced-motion: reduce) { .insights-page .bar { transition: none; } }
 
 /* Card surface, bundled here so the page never depends on an external stylesheet. */
-.insights-page .card-paper { background: var(--surface-raised); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-md, 14px); padding: 24px; box-shadow: var(--shadow-soft); min-width: 0; overflow: hidden; }
-.insights-page .card-paper .label { margin: 0; color: var(--teal-bright); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+@layer insights-card-fallback {
+  .insights-page .card { background: var(--surface-raised); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-md, 14px); box-shadow: var(--shadow-soft); }
+  .insights-page .card-dispatch { background: var(--surface-deep); }
+  .insights-page .card-stamp { background: var(--surface-tint); }
+  .insights-page .card-field { background: color-mix(in srgb, var(--surface-tint), var(--surface-raised)); }
+  .insights-page .card-plain { background: var(--surface); }
+}
+.insights-page .card { padding: 24px; min-width: 0; overflow: hidden; }
+.insights-page .card-paper { background: var(--surface-raised); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-md, 14px); box-shadow: var(--shadow-soft); }
+.insights-page .card .label { margin: 0; color: var(--teal-bright); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 .insights-page .chart { overflow-x: auto; max-width: 100%; }
 /* Every control in the share row looks and sizes the same, buttons and links alike. */
 .insights-page .actions > .button-primary, .insights-page .actions > .button-secondary {
@@ -51,7 +59,7 @@
 .insights-page .actions > a.button-secondary:hover { border-color: var(--line-strong); }
 .insights-page .actions > a.button-secondary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 @media (max-width: 480px) {
-  .insights-page .card-paper { padding: 16px; }
+  .insights-page .card { padding: 16px; }
   .insights-page th[scope="row"] { white-space: normal; max-width: none; overflow-wrap: anywhere; }
   .insights-page .bar-cell { width: 28%; }
   .insights-page td, .insights-page thead th { padding: 6px 4px; }
