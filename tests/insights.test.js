@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { refreshInsights } from "../src/insights-store.js";
 import { SAMPLE_LABEL, buildInsights, shareCardSvg, windowStart } from "../src/insights.js";
 import { placeInCrowd } from "../public/crowd.js";
 import worker from "../src/worker.js";
@@ -95,6 +96,9 @@ describe("insights routes", () => {
     const body = { schema_version: 1, verdict: { score: 40, classification: "likely_bot", risk: "high", reasons: [{ id: "ua_mismatch", severity: "high", points: 30 }] }, server: { userAgent: "x", cf: { country: "gb" } }, client: {}, detections: [] };
     await persistReport(env, body, "3f1c2a84-5b6d-4e7f-8a9b-000000000001", T0);
     await compactReports(env, new Date());
+    await refreshInsights(env, new Date());
+    const scans = () => d1.queries.filter((q) => /FROM agg_counts/.test(q)).length;
+    const before = scans();
     const get = (path) => worker.fetch(new Request(`https://t.example${path}`, { headers: { "cf-connecting-ip": "203.0.113.5" } }), env, {});
     const ok = await (await get("/api/insights?window=7")).json();
     expect(ok.enabled).toBe(true);
@@ -104,6 +108,23 @@ describe("insights routes", () => {
     const svg = await get("/insights/card/reasons.svg?window=7");
     expect(svg.headers.get("content-type")).toContain("image/svg+xml");
     expect((await get("/insights/card/nope.svg?window=7")).status).toBe(404);
+    // Requests never scan the aggregates, and a second refresh inside six hours does nothing.
+    expect(scans()).toBe(before);
+    expect(await refreshInsights(env, new Date())).toMatchObject({ skipped: "fresh" });
+  });
+
+  it("answers empty before the first build, without a scan", async () => {
+    const d1 = createD1();
+    const env = createWorkerEnv({ REPORTS: d1, RAW: createR2() });
+    const response = await worker.fetch(new Request("https://t.example/api/insights?window=7"), env, {});
+    expect(await response.json()).toMatchObject({ enabled: true, empty: true });
+    expect(d1.queries.filter((q) => /FROM agg_counts/.test(q))).toHaveLength(0);
+  });
+
+  it("ends a long share headline with an ellipsis", () => {
+    const svg = shareCardSvg({ id: "x", title: "T", headline: "word ".repeat(80), sample: 1, window_days: 7, as_of: "2026-11-25" });
+    expect(svg).toContain("...");
+    expect((svg.match(/font-size="56"/g) || []).length).toBe(5);
   });
 
   it("answers empty without storage", async () => {

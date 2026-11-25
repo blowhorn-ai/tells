@@ -36,3 +36,25 @@
 .insights-page .try { margin: 12px 0 4px; }
 .insights-page .fineprint { margin-top: 28px; color: var(--ink-muted); font-size: 0.9rem; }
 @media (prefers-reduced-motion: reduce) { .insights-page .bar { transition: none; } }
+
+/* Card surface, bundled here so the page never depends on an external stylesheet. */
+.insights-page .card-paper { background: var(--surface-raised); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-md, 14px); padding: 24px; box-shadow: var(--shadow-soft); min-width: 0; overflow: hidden; }
+.insights-page .card-paper .label { margin: 0; color: var(--teal-bright); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.insights-page .chart { overflow-x: auto; max-width: 100%; }
+/* Every control in the share row looks and sizes the same, buttons and links alike. */
+.insights-page .actions > .button-primary, .insights-page .actions > .button-secondary {
+  display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-height: 44px; padding: 10px 16px;
+  border: 1px solid transparent; border-radius: var(--radius-md, 14px); font: inherit; font-weight: 600; text-decoration: none; color: var(--ink);
+}
+.insights-page .actions > .button-primary { color: var(--on-teal); }
+.insights-page .actions > a.button-secondary { background: linear-gradient(180deg, var(--glass-sheen), transparent 60%), var(--glass-fill); box-shadow: inset 0 0 0 1px var(--line-strong), var(--glass-shadow); }
+.insights-page .actions > a.button-secondary:hover { border-color: var(--line-strong); }
+.insights-page .actions > a.button-secondary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+@media (max-width: 480px) {
+  .insights-page .card-paper { padding: 16px; }
+  .insights-page th[scope="row"] { white-space: normal; max-width: none; overflow-wrap: anywhere; }
+  .insights-page .bar-cell { width: 28%; }
+  .insights-page td, .insights-page thead th { padding: 6px 4px; }
+  .insights-page .actions > .button-primary, .insights-page .actions > .button-secondary { flex: 1 1 auto; }
+  .insights-page .plain-table { display: block; overflow-x: auto; }
+}

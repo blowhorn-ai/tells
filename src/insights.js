@@ -143,6 +143,8 @@ export function buildInsights(rows, windowDays, now = new Date()) {
   return { ...label, empty: false, cards };
 }
 
+const MAX_LINES = 5;
+
 export function shareCardSvg(card) {
   const esc = (text) => String(text).replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" })[c]);
   const words = String(card.headline).split(" ");
@@ -157,7 +159,14 @@ export function shareCardSvg(card) {
     }
   }
   if (line) lines.push(line);
-  const body = lines.slice(0, 5).map((text, i) => `<text x="72" y="${250 + i * 70}" font-size="56" font-weight="700" fill="#FFFFFF">${esc(text)}</text>`).join("");
+  if (lines.length > MAX_LINES) {
+    // Cut at a word boundary and say so, never mid-sentence without a mark.
+    const kept = lines.slice(0, MAX_LINES);
+    kept[MAX_LINES - 1] = `${kept[MAX_LINES - 1].replace(/[\s.,;:]+$/, "").slice(0, 31)}...`;
+    lines.length = 0;
+    lines.push(...kept);
+  }
+  const body = lines.map((text, i) => `<text x="72" y="${250 + i * 70}" font-size="56" font-weight="700" fill="#FFFFFF">${esc(text)}</text>`).join("");
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="${esc(card.headline)}">
 <rect width="1200" height="630" fill="#1E2117"/>
 <rect x="0" y="0" width="16" height="630" fill="#00B39F"/>

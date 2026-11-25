@@ -4,9 +4,10 @@ import { readFileSync } from "node:fs";
 
 export function createD1() {
   const db = new DatabaseSync(":memory:");
-  db.exec(readFileSync(new URL("../migrations/0001_reports.sql", import.meta.url), "utf8"));
+  for (const file of ["0001_reports.sql", "0002_insights.sql"]) db.exec(readFileSync(new URL(`../migrations/${file}`, import.meta.url), "utf8"));
   const stats = { statements: 0, failNext: false };
-  const statement = (sql, params = []) => ({
+  const queries = [];
+  const statement = (sql, params = []) => (queries.push(sql), {
     bind: (...values) => statement(sql, values),
     async run() {
       stats.statements += 1;
@@ -30,6 +31,7 @@ export function createD1() {
   return {
     db,
     stats,
+    queries,
     prepare: (sql) => statement(sql),
     async batch(list) {
       stats.batches = (stats.batches || 0) + 1;
