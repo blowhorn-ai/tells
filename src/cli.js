@@ -42,7 +42,7 @@ Install once, then run tells:
 Without a global install: ${manifest.npx.command}
 
 Usage:
-  tells [--url <url>] [--timeout <ms>] [--compact]
+  tells [--url <url>] [--timeout <ms>] [--compact] [--no-collect]
   tells --server-only [--url <url>] [--timeout <ms>] [--compact]
   tells --help
   tells --version
@@ -84,7 +84,8 @@ export function parseCliArgs(argv) {
         url: { type: "string" },
         timeout: { type: "string" },
         "server-only": { type: "boolean" },
-        compact: { type: "boolean" }
+        compact: { type: "boolean" },
+        "no-collect": { type: "boolean" }
       }
     });
   } catch (error) {
@@ -108,6 +109,9 @@ export function parseCliArgs(argv) {
   if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
     throw new CliError(`--url must be http or https: ${url}`, EXIT.USAGE);
   }
+
+  // The page keeps a redacted copy of each run unless the visitor opts out. The page reads this parameter.
+  if (parsed.values["no-collect"] === true) parsedUrl.searchParams.set("collect", "off");
 
   return {
     help: false,

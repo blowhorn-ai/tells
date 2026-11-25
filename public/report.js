@@ -7,6 +7,7 @@ import { collectSurfaceIndicators } from "./collect-surfaces.js";
 import { collectTells, probePrototypeLies } from "./collect-tells.js";
 import { collectWorkers } from "./collect-workers.js";
 import { $ } from "./dom.js";
+import { COLLECT_HEADER, RUN_HEADER, currentRunId, isCollectionOn, newRunId } from "./collection.js";
 import { computeBehavior } from "./runtime.js";
 import { renderReport, renderVerdictCard, renderVoice, setStatus } from "./ui.js";
 import { failureVoice, verdictVoice } from "./voice.js";
@@ -19,6 +20,7 @@ let latestRun = 0;
 // overwrite its verdict or re-enable the Run button while it is still running.
 export async function runChecks(state) {
   const run = ++latestRun;
+  newRunId();
   const isLatest = () => run === latestRun;
   const runBtn = $("#runBtn");
   runBtn.disabled = true;
@@ -106,9 +108,11 @@ function notTakenInteraction() {
 }
 
 async function postReport(client) {
+  const headers = { "Content-Type": "application/json", [RUN_HEADER]: currentRunId() };
+  if (!isCollectionOn()) headers[COLLECT_HEADER] = "off";
   const response = await fetch("/api/report", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(client)
   });
   const data = await response.json();

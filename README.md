@@ -115,9 +115,41 @@ A stock headless browser is expected to exit 4. That means the check finished. `
 
 This is not a "nothing leaves your browser" checker. Scoring happens on the server, so the readings have to get there. This is what happens on each run:
 
-- The page runs its checks on load and posts the readings to `/api/report`. The Worker scores them and returns the report. It writes nothing to storage, and Workers observability is off in `wrangler.json`.
+- The page runs its checks on load and posts the readings to `/api/report`. The Worker scores them and returns the report. Unless the visitor opts out, it also keeps a redacted copy of the report for 90 days (see below). Workers observability is off in `wrangler.json`, so there are no request logs.
 - The Worker sends the visitor's IP address, and nothing else, to ipapi.is to check for datacenter, proxy, VPN and Tor addresses. `/api/check` and `/api/report` both do this; `/api/ping` does not. Set `IP_INTEL_PROVIDER=none` to turn it off.
 - The WebRTC check asks Google's public STUN server (`stun.l.google.com`) for the browser's address, as any WebRTC page can.
+
+### The reports catalog
+
+Collection is on by default. For each run the Worker keeps one redacted row in Cloudflare D1 (`migrations/0001_reports.sql`): the verdict score and classification, the reason ids, the detection rows, the schema and check catalog versions, a browser and operating system family, the country, a datacenter flag and the time. It never keeps the IP address, headers, WebRTC addresses, fingerprint values, the page address or the referrer. The allow list in `src/report-catalog.js` is the whole record.
+
+Once an hour a cron (`scheduled` in `src/worker.js`, `src/report-store.js`) turns the waiting rows into daily aggregates (`agg_counts`, kept forever) and writes one gzipped NDJSON object per hour of data to R2. R2 write operations therefore follow the clock, not traffic. At 03:xx UTC the same job deletes rows and objects past retention: 90 days, shortened when the budget fills. The total number of reports collected is a monotonic counter (the sum of `ledger.accepted`, never pruned), shown on the page and at `GET /api/stats`.
+
+**No storage or network fee, ever.** Cloudflare has no hard spend cap, so the limits are in code (`src/report-budget.js`, design in issue #108). Every budget is 50% of a free allowance. A ledger counts what the Worker writes, and the mode below follows the fullest budget. If a counter cannot be read, or `COLLECT_DISABLED=1` is set, nothing is written.
+
+| Budget used | Mode | What it does |
+| --- | --- | --- |
+| under 60% | normal | catalog row, aggregates, raw object, 90-day retention |
+| 60% | tighten | raw and catalog retention drops to 30 days |
+| 70% | sample | raw kept for 1 in 4 runs and every run with 3 or more reasons; retention 14 days |
+| 85% | aggregate | catalog rows and aggregates only, no raw |
+| 95% | count | only the daily counter |
+| 100%, or unreadable | off | nothing is written |
+
+Budgets: 5,000 accepted reports a day, 50,000 D1 rows written a day (an index row counts, and each report costs about 8 over its life), 5 GB of raw in R2, 500,000 R2 write operations a month. Visitors never read R2. Stay on the Workers Free plan, use Standard storage only, and add no other billable binding: a test fails if `wrangler.json` gains anything outside the D1 `REPORTS` and R2 `RAW` bindings.
+
+A visitor opts out in the page footer ("Keep a redacted copy of my reports", kept in this browser only), with `?collect=off` on the page address, or with `tells --no-collect`. The Global Privacy Control signal is not treated as an opt-out. An opted-out run is not stored. Turning the footer setting off also removes the copy of the run already posted on that page (`POST /api/report/forget`). That removes the catalog row only: the run stays in the daily aggregates and in any hourly R2 object already written, until retention ends. The total collected does not go down, and the removal is counted separately.
+
+Storage is off until the bindings exist. To turn it on (an account owner does this once):
+
+```sh
+wrangler d1 create blowhorn-tells-reports
+wrangler r2 bucket create blowhorn-tells-raw
+wrangler r2 bucket lifecycle add blowhorn-tells-raw expire-91d --expire-days 91
+wrangler d1 migrations apply blowhorn-tells-reports --remote
+```
+
+Then add to `wrangler.json`: a `d1_databases` entry (`binding: "REPORTS"`, the database name and the id that `d1 create` printed) and an `r2_buckets` entry (`binding: "RAW"`, `bucket_name: "blowhorn-tells-raw"`). Turn on Cloudflare usage notifications at 50% and 80% of each allowance. Check the real usage against the ledger on the first of each month. These notifications warn; the ledger is what prevents a fee.
 
 The page footer says the same thing. If any of this changes, update the footer and this section in the same change.
 
