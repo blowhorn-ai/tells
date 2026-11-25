@@ -7,6 +7,7 @@ import { collectSurfaceIndicators } from "./collect-surfaces.js";
 import { collectTells, probePrototypeLies } from "./collect-tells.js";
 import { collectWorkers } from "./collect-workers.js";
 import { $ } from "./dom.js";
+import { renderCrowd } from "./crowd.js";
 import { COLLECT_HEADER, RUN_HEADER, currentRunId, isCollectionOn, newRunId } from "./collection.js";
 import { computeBehavior } from "./runtime.js";
 import { renderReport, renderVerdictCard, renderVoice, setStatus } from "./ui.js";
@@ -60,6 +61,7 @@ export async function runChecks(state) {
     if (!isLatest()) return null;
     state.report = report;
     renderReport(state, report);
+    renderCrowd(report);
     for (const id of ["#copyBtn", "#downloadBtn", "#copyRawBtn", "#downloadRawBtn"]) $(id).disabled = false;
     showInteractionStatus(state, "Interaction test complete. The verdict is shown above.");
     return true;

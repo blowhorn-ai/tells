@@ -8,6 +8,7 @@ import {
   RUN_HEADER
 } from "./report-catalog.js";
 import { BUDGET } from "./report-budget.js";
+import { WINDOWS, buildInsights, shareCardSvg, windowStart } from "./insights.js";
 import { collectionStats, compactReports, pruneReports } from "./report-store.js";
 import {
   deriveBehavior,
@@ -85,6 +86,34 @@ export default {
           if (typeof ctx?.waitUntil === "function") ctx.waitUntil(stored);
         }
         return json(body, 200, {}, reportCorsHeaders(request));
+      }
+
+      // The insights report. Aggregates only, cached for an hour (the aggregates change once an hour).
+      if (url.pathname === "/api/insights" && request.method === "GET") {
+        const days = Number(url.searchParams.get("window") || 30);
+        if (!WINDOWS.includes(days)) return json({ ok: false, error: `window must be one of ${WINDOWS.join(", ")}` }, 400);
+        if (!env.REPORTS) return json({ enabled: false, empty: true, cards: [] });
+        const cache = typeof caches !== "undefined" ? caches.default : null;
+        const cacheKey = new Request(`${url.origin}/api/insights?window=${days}`);
+        const cached = cache ? await cache.match(cacheKey) : null;
+        if (cached) return cached;
+        const now = new Date();
+        const found = await env.REPORTS.prepare("SELECT day, dim, k, n FROM agg_counts WHERE day >= ?").bind(windowStart(now, days)).all();
+        const response = json({ enabled: true, ...buildInsights(found?.results || [], days, now) }, 200, { "Cache-Control": "public, max-age=3600" });
+        if (cache) ctx?.waitUntil?.(cache.put(cacheKey, response.clone()));
+        return response;
+      }
+
+      // A shareable image for one insight card, as SVG, from the same cached aggregates.
+      const shareMatch = url.pathname.match(/^\/insights\/card\/([a-z]+)\.svg$/);
+      if (shareMatch && request.method === "GET") {
+        const days = Number(url.searchParams.get("window") || 30);
+        if (!WINDOWS.includes(days) || !env.REPORTS) return new Response("Not found", { status: 404 });
+        const now = new Date();
+        const found = await env.REPORTS.prepare("SELECT day, dim, k, n FROM agg_counts WHERE day >= ?").bind(windowStart(now, days)).all();
+        const card = buildInsights(found?.results || [], days, now).cards.find((c) => c.id === shareMatch[1]);
+        if (!card) return new Response("Not found", { status: 404 });
+        return new Response(shareCardSvg(card), { headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "public, max-age=3600" } });
       }
 
       // The collected total, always visible on the page. Cached for five minutes; the figure is a sum over one ledger row per day, so a miss is cheap.
