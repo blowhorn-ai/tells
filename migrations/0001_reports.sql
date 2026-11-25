@@ -24,10 +24,13 @@ CREATE TABLE IF NOT EXISTS reports (
 CREATE INDEX IF NOT EXISTS reports_pending_idx ON reports (state) WHERE state = 0;
 
 -- One row per UTC day. Never pruned: the sum of accepted is the monotonic total of reports collected.
+-- Rows held now = accepted - counted (counted only, no row) - removed (visitor request) - pruned (retention).
 CREATE TABLE IF NOT EXISTS ledger (
   period TEXT PRIMARY KEY,
   accepted INTEGER NOT NULL DEFAULT 0,
+  counted INTEGER NOT NULL DEFAULT 0,
   removed INTEGER NOT NULL DEFAULT 0,
+  pruned INTEGER NOT NULL DEFAULT 0,
   d1_writes INTEGER NOT NULL DEFAULT 0,
   r2_puts INTEGER NOT NULL DEFAULT 0,
   r2_bytes INTEGER NOT NULL DEFAULT 0

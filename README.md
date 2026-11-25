@@ -138,7 +138,7 @@ Once an hour a cron (`scheduled` in `src/worker.js`, `src/report-store.js`) turn
 
 Budgets: 5,000 accepted reports a day, 50,000 D1 rows written a day (an index row counts, and each report costs about 8 over its life), 5 GB of raw in R2, 500,000 R2 write operations a month. Visitors never read R2. Stay on the Workers Free plan, use Standard storage only, and add no other billable binding: a test fails if `wrangler.json` gains anything outside the D1 `REPORTS` and R2 `RAW` bindings.
 
-A visitor opts out in the page footer ("Keep a redacted copy of my reports", kept in this browser only), with `?collect=off` on the page address, or with `tells --no-collect`. The Global Privacy Control signal is not treated as an opt-out. An opted-out run is not stored. Turning the footer setting off also removes the copy of the run already posted on that page (`POST /api/report/forget`); the total collected does not go down, and the removal is counted separately.
+A visitor opts out in the page footer ("Keep a redacted copy of my reports", kept in this browser only), with `?collect=off` on the page address, or with `tells --no-collect`. The Global Privacy Control signal is not treated as an opt-out. An opted-out run is not stored. Turning the footer setting off also removes the copy of the run already posted on that page (`POST /api/report/forget`). That removes the catalog row only: the run stays in the daily aggregates and in any hourly R2 object already written, until retention ends. The total collected does not go down, and the removal is counted separately.
 
 Storage is off until the bindings exist. To turn it on (an account owner does this once):
 

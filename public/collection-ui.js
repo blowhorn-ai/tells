@@ -10,7 +10,7 @@ export function setupCollectionToggle() {
     if (note) {
       note.textContent = toggle.checked
         ? ""
-        : "Not kept. Reports from this browser are not stored, and the copy of this run was removed.";
+        : "Not kept. Reports from this browser are not stored, and this run was removed from the catalog. It may remain in anonymous daily totals.";
     }
   };
   describe();

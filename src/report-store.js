@@ -6,7 +6,10 @@
 import { BUDGET, computeMode, keepRaw, retentionDays } from "./report-budget.js";
 import { readUsage } from "./report-catalog.js";
 
-const BATCH = 2000;
+// Rows per atomic batch, and batches per invocation. One batch is one D1 transaction.
+const CHUNK = 250;
+const MAX_BATCHES = 8;
+const MAX_STATEMENTS = 900;
 
 function hourStart(now) {
   const d = new Date(now);
@@ -70,8 +73,51 @@ function rawLine(row) {
   });
 }
 
-async function chunkedBatch(env, statements) {
-  for (let i = 0; i < statements.length; i += 50) await env.REPORTS.batch(statements.slice(i, i + 50));
+// Builds everything one chunk of rows changes in D1 as a single batch: the aggregates, the raw object records,
+// the state mark and the ledger. D1 runs a batch as one transaction, so it all commits or none of it does. A chunk
+// that would need too many statements is halved until it fits.
+function planChunk(env, rows, cutoff, objects, day) {
+  let size = rows.length;
+  for (;;) {
+    const part = rows.slice(0, size);
+    const cells = new Map();
+    const bump = (d, dim, k) => {
+      const id = `${d}\u0000${dim}\u0000${k}`;
+      cells.set(id, (cells.get(id) || 0) + 1);
+    };
+    for (const row of part) aggregateRow(row, bump);
+    const own = objects.filter((object) => object.ids.every((id) => part.some((row) => row.id === id)));
+    if (cells.size + own.length + 3 <= MAX_STATEMENTS || size === 1) {
+      const statements = [];
+      for (const [id, n] of cells) {
+        const [d, dim, k] = id.split("\u0000");
+        statements.push(env.REPORTS.prepare(
+          `INSERT INTO agg_counts (day, dim, k, n) VALUES (?, ?, ?, ?)
+           ON CONFLICT(day, dim, k) DO UPDATE SET n = n + excluded.n`
+        ).bind(d, dim, k, n));
+      }
+      for (const object of own) {
+        statements.push(env.REPORTS.prepare("INSERT OR REPLACE INTO raw_objects (key, hour, bytes, reports) VALUES (?, ?, ?, ?)")
+          .bind(object.key, object.hour, object.bytes, object.reports));
+      }
+      const maxId = part[part.length - 1].id;
+      statements.push(env.REPORTS.prepare("UPDATE reports SET state = 1 WHERE state = 0 AND rowid <= ? AND received_at < ?")
+        .bind(maxId, cutoff));
+      const bytes = own.reduce((sum, object) => sum + object.bytes, 0);
+      statements.push(env.REPORTS.prepare(
+        `INSERT INTO ledger (period, d1_writes) VALUES (?, ?)
+         ON CONFLICT(period) DO UPDATE SET d1_writes = d1_writes + excluded.d1_writes`
+      ).bind(day, cells.size + own.length + part.length * 2 + 2));
+      if (bytes > 0) {
+        statements.push(env.REPORTS.prepare(
+          `INSERT INTO state (k, v) VALUES ('raw_held_bytes', ?)
+           ON CONFLICT(k) DO UPDATE SET v = v + excluded.v`
+        ).bind(bytes));
+      }
+      return { statements, count: part.length, cells: cells.size, objects: own.length };
+    }
+    size = Math.max(1, Math.floor(size / 2));
+  }
 }
 
 export async function compactReports(env, now = new Date()) {
@@ -86,68 +132,46 @@ export async function compactReports(env, now = new Date()) {
   if (mode === "off") return { mode };
 
   const cutoff = hourStart(now).toISOString();
-  const found = await env.REPORTS.prepare(
-    "SELECT rowid AS id, * FROM reports WHERE state = 0 AND received_at < ? ORDER BY rowid LIMIT ?"
-  ).bind(cutoff, BATCH).all();
-  const rows = found?.results || [];
-  if (rows.length === 0) return { mode, compacted: 0, objects: 0 };
+  const day = now.toISOString().slice(0, 10);
+  const total = { mode, compacted: 0, objects: 0, cells: 0 };
+  for (let batch = 0; batch < MAX_BATCHES; batch += 1) {
+    const found = await env.REPORTS.prepare(
+      "SELECT rowid AS id, * FROM reports WHERE state = 0 AND received_at < ? ORDER BY rowid LIMIT ?"
+    ).bind(cutoff, CHUNK).all();
+    const rows = found?.results || [];
+    if (rows.length === 0) break;
 
-  // Raw objects first. A failed put aborts before anything is marked, and the next hour retries the same rows
-  // under the same keys.
-  const objects = [];
-  if (env.RAW && (mode === "normal" || mode === "tighten" || mode === "sample")) {
-    const groups = new Map();
-    for (const row of rows) {
-      if (!keepRaw(mode, row.run_id, parseList(row.reasons).length)) continue;
-      const hour = row.received_at.slice(0, 13);
-      if (!groups.has(hour)) groups.set(hour, []);
-      groups.get(hour).push(row);
+    // Raw objects first. Each put is counted in the ledger right away, so a retry after a failed batch never
+    // hides an operation. The key depends only on the hour and the first row, so a retry overwrites it.
+    const objects = [];
+    if (env.RAW && (mode === "normal" || mode === "tighten" || mode === "sample")) {
+      const groups = new Map();
+      for (const row of rows) {
+        if (!keepRaw(mode, row.run_id, parseList(row.reasons).length)) continue;
+        const hour = row.received_at.slice(0, 13);
+        if (!groups.has(hour)) groups.set(hour, []);
+        groups.get(hour).push(row);
+      }
+      for (const [hour, group] of groups) {
+        const body = await gzip(`${group.map(rawLine).join("\n")}\n`);
+        const key = `reports/${hour.slice(0, 4)}/${hour.slice(5, 7)}/${hour.slice(8, 10)}/${hour.slice(11, 13)}-${group[0].id}.ndjson.gz`;
+        await env.RAW.put(key, body, { httpMetadata: { contentType: "application/gzip" } });
+        await env.REPORTS.prepare(
+          `INSERT INTO ledger (period, d1_writes, r2_puts, r2_bytes) VALUES (?, 1, 1, ?)
+           ON CONFLICT(period) DO UPDATE SET d1_writes = d1_writes + 1, r2_puts = r2_puts + 1, r2_bytes = r2_bytes + excluded.r2_bytes`
+        ).bind(day, body.byteLength).run();
+        objects.push({ key, hour: `${hour}:00:00.000Z`, bytes: body.byteLength, reports: group.length, ids: group.map((row) => row.id) });
+      }
     }
-    for (const [hour, group] of groups) {
-      const body = await gzip(`${group.map(rawLine).join("\n")}\n`);
-      const key = `reports/${hour.slice(0, 4)}/${hour.slice(5, 7)}/${hour.slice(8, 10)}/${hour.slice(11, 13)}-${group[0].id}.ndjson.gz`;
-      await env.RAW.put(key, body, { httpMetadata: { contentType: "application/gzip" } });
-      objects.push({ key, hour: `${hour}:00:00.000Z`, bytes: body.byteLength, reports: group.length });
-    }
-  }
 
-  const cells = new Map();
-  const bump = (day, dim, k) => {
-    const id = `${day}\u0000${dim}\u0000${k}`;
-    cells.set(id, (cells.get(id) || 0) + 1);
-  };
-  for (const row of rows) aggregateRow(row, bump);
-
-  const statements = [];
-  for (const [id, n] of cells) {
-    const [day, dim, k] = id.split("\u0000");
-    statements.push(env.REPORTS.prepare(
-      `INSERT INTO agg_counts (day, dim, k, n) VALUES (?, ?, ?, ?)
-       ON CONFLICT(day, dim, k) DO UPDATE SET n = n + excluded.n`
-    ).bind(day, dim, k, n));
+    const plan = planChunk(env, rows, cutoff, objects, day);
+    await env.REPORTS.batch(plan.statements);
+    total.compacted += plan.count;
+    total.objects += plan.objects;
+    total.cells += plan.cells;
+    if (rows.length < CHUNK && plan.count === rows.length) break;
   }
-  for (const object of objects) {
-    statements.push(env.REPORTS.prepare("INSERT OR REPLACE INTO raw_objects (key, hour, bytes, reports) VALUES (?, ?, ?, ?)")
-      .bind(object.key, object.hour, object.bytes, object.reports));
-  }
-  const maxId = rows[rows.length - 1].id;
-  statements.push(env.REPORTS.prepare("UPDATE reports SET state = 1 WHERE state = 0 AND rowid <= ? AND received_at < ?")
-    .bind(maxId, cutoff));
-  const bytes = objects.reduce((sum, object) => sum + object.bytes, 0);
-  const writes = cells.size + objects.length + rows.length * 2 + 2;
-  statements.push(env.REPORTS.prepare(
-    `INSERT INTO ledger (period, d1_writes, r2_puts, r2_bytes) VALUES (?, ?, ?, ?)
-     ON CONFLICT(period) DO UPDATE SET d1_writes = d1_writes + excluded.d1_writes,
-       r2_puts = r2_puts + excluded.r2_puts, r2_bytes = r2_bytes + excluded.r2_bytes`
-  ).bind(now.toISOString().slice(0, 10), writes, objects.length, bytes));
-  if (bytes > 0) {
-    statements.push(env.REPORTS.prepare(
-      `INSERT INTO state (k, v) VALUES ('raw_held_bytes', ?)
-       ON CONFLICT(k) DO UPDATE SET v = v + excluded.v`
-    ).bind(bytes));
-  }
-  await chunkedBatch(env, statements);
-  return { mode, compacted: rows.length, objects: objects.length, cells: cells.size };
+  return total;
 }
 
 // Deletes catalog rows and R2 objects past the retention for the current mode. Aggregates are kept. Rows that
@@ -159,7 +183,13 @@ export async function pruneReports(env, now = new Date()) {
     const mode = usage ? computeMode(usage) : "off";
     const days = retentionDays(mode);
     const cutoff = new Date(now.getTime() - days * 86400000).toISOString();
-    const deleted = await env.REPORTS.prepare("DELETE FROM reports WHERE state = 1 AND received_at < ?").bind(cutoff).run();
+    await env.REPORTS.batch([
+      env.REPORTS.prepare("DELETE FROM reports WHERE state = 1 AND received_at < ?").bind(cutoff),
+      env.REPORTS.prepare(
+        `INSERT INTO ledger (period, pruned, d1_writes) SELECT ?, changes(), changes() * 2 WHERE changes() > 0
+         ON CONFLICT(period) DO UPDATE SET pruned = pruned + excluded.pruned, d1_writes = d1_writes + excluded.d1_writes`
+      ).bind(now.toISOString().slice(0, 10))
+    ]);
     let freed = 0;
     for (;;) {
       const old = await env.REPORTS.prepare("SELECT key, bytes FROM raw_objects WHERE hour < ? LIMIT 200").bind(cutoff).all();
@@ -167,19 +197,12 @@ export async function pruneReports(env, now = new Date()) {
       if (list.length === 0) break;
       if (env.RAW) await env.RAW.delete(list.map((object) => object.key));
       const statements = list.map((object) => env.REPORTS.prepare("DELETE FROM raw_objects WHERE key = ?").bind(object.key));
-      await chunkedBatch(env, statements);
+      await env.REPORTS.batch(statements);
       freed += list.reduce((sum, object) => sum + object.bytes, 0);
       if (list.length < 200) break;
     }
     if (freed > 0) {
       await env.REPORTS.prepare("UPDATE state SET v = MAX(0, v - ?) WHERE k = 'raw_held_bytes'").bind(freed).run();
-    }
-    const writes = (deleted?.meta?.changes || 0) * 2;
-    if (writes > 0) {
-      await env.REPORTS.prepare(
-        `INSERT INTO ledger (period, d1_writes) VALUES (?, ?)
-         ON CONFLICT(period) DO UPDATE SET d1_writes = d1_writes + excluded.d1_writes`
-      ).bind(now.toISOString().slice(0, 10), writes).run();
     }
     return true;
   } catch (_) {
@@ -191,16 +214,17 @@ export async function pruneReports(env, now = new Date()) {
 export async function collectionStats(env, now = new Date()) {
   if (!env?.REPORTS) return { enabled: false, as_of: now.toISOString() };
   try {
-    const totals = await env.REPORTS.prepare(
-      "SELECT COALESCE(SUM(accepted), 0) AS total, COALESCE(SUM(removed), 0) AS removed, MIN(period) AS since FROM ledger"
+    const t = await env.REPORTS.prepare(
+      `SELECT COALESCE(SUM(accepted), 0) AS total, COALESCE(SUM(counted), 0) AS counted,
+              COALESCE(SUM(removed), 0) AS removed, COALESCE(SUM(pruned), 0) AS pruned, MIN(period) AS since
+       FROM ledger`
     ).first();
-    const held = await env.REPORTS.prepare("SELECT COUNT(*) AS n FROM reports").first();
     return {
       enabled: true,
-      total_collected: totals?.total || 0,
-      removed_on_request: totals?.removed || 0,
-      held_now: held?.n || 0,
-      since: totals?.since || null,
+      total_collected: t?.total || 0,
+      removed_on_request: t?.removed || 0,
+      held_now: Math.max(0, (t?.total || 0) - (t?.counted || 0) - (t?.removed || 0) - (t?.pruned || 0)),
+      since: t?.since || null,
       retention_days: 90,
       as_of: now.toISOString()
     };

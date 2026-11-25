@@ -32,9 +32,20 @@ export function createD1() {
     stats,
     prepare: (sql) => statement(sql),
     async batch(list) {
-      const out = [];
-      for (const item of list) out.push(await item.run());
-      return out;
+      stats.batches = (stats.batches || 0) + 1;
+      db.exec("BEGIN");
+      try {
+        const out = [];
+        for (const [index, item] of list.entries()) {
+          if (stats.failBatchAt === index) throw new Error("D1 batch failed");
+          out.push(await item.run());
+        }
+        db.exec("COMMIT");
+        return out;
+      } catch (error) {
+        db.exec("ROLLBACK");
+        throw error;
+      }
     }
   };
 }

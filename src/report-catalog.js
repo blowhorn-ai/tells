@@ -131,15 +131,15 @@ export async function currentMode(env, now = new Date()) {
   return usage ? computeMode(usage) : "off";
 }
 
-function ledgerUpsert(env, period, accepted, writes) {
+// The ledger row follows the row insert in the same batch: `changes()` is the insert's result, so a retried run
+// (insert ignored) is not counted twice, and a failure rolls both back.
+function ledgerAfterInsert(env, period, writes) {
   return env.REPORTS.prepare(
-    `INSERT INTO ledger (period, accepted, d1_writes) VALUES (?, ?, ?)
-     ON CONFLICT(period) DO UPDATE SET accepted = accepted + excluded.accepted, d1_writes = d1_writes + excluded.d1_writes`
-  ).bind(period, accepted, writes);
+    `INSERT INTO ledger (period, accepted, d1_writes) SELECT ?, 1, ? WHERE changes() > 0
+     ON CONFLICT(period) DO UPDATE SET accepted = accepted + 1, d1_writes = d1_writes + excluded.d1_writes`
+  ).bind(period, writes);
 }
 
-// One redacted row per run id; a retry never creates a second row and is not counted twice. Storage is
-// optional: without the REPORTS binding nothing is kept. A failure to store never reaches the visitor.
 // Returns "stored", "counted", or false.
 export async function persistReport(env, report, runId, now = new Date()) {
   if (!env?.REPORTS || !validRunId(runId)) return false;
@@ -148,16 +148,19 @@ export async function persistReport(env, report, runId, now = new Date()) {
     if (mode === "off") return false;
     const period = dayOf(now);
     if (mode === "count") {
-      await ledgerUpsert(env, period, 1, 1).run();
+      await env.REPORTS.prepare(
+        `INSERT INTO ledger (period, accepted, counted, d1_writes) VALUES (?, 1, 1, 1)
+         ON CONFLICT(period) DO UPDATE SET accepted = accepted + 1, counted = counted + 1, d1_writes = d1_writes + 1`
+      ).bind(period).run();
       return "counted";
     }
     const row = redactReport(report, runId, now);
     const marks = COLUMNS.map(() => "?").join(", ");
-    const inserted = await env.REPORTS.prepare(`INSERT OR IGNORE INTO reports (${COLUMNS.join(", ")}) VALUES (${marks})`)
-      .bind(...COLUMNS.map((column) => row[column]))
-      .run();
-    if (inserted?.meta?.changes === 0) return "stored";
-    await ledgerUpsert(env, period, 1, BUDGET.writesPerReport).run();
+    await env.REPORTS.batch([
+      env.REPORTS.prepare(`INSERT OR IGNORE INTO reports (${COLUMNS.join(", ")}) VALUES (${marks})`)
+        .bind(...COLUMNS.map((column) => row[column])),
+      ledgerAfterInsert(env, period, BUDGET.writesPerReport)
+    ]);
     return "stored";
   } catch (_) {
     return false;
@@ -165,17 +168,18 @@ export async function persistReport(env, report, runId, now = new Date()) {
 }
 
 // A visitor who turns collection off after the page already posted asks for the run's record to be removed.
-// The total collected does not go down; the removal is counted separately.
+// This deletes the catalog row only: aggregates and lines already written to R2 stay until retention ends. The
+// total collected does not go down; the removal is counted separately.
 export async function forgetReport(env, runId, now = new Date()) {
   if (!env?.REPORTS || !validRunId(runId)) return false;
   try {
-    const gone = await env.REPORTS.prepare("DELETE FROM reports WHERE run_id = ?").bind(runId).run();
-    if (gone?.meta?.changes > 0) {
-      await env.REPORTS.prepare(
-        `INSERT INTO ledger (period, removed, d1_writes) VALUES (?, 1, 2)
+    await env.REPORTS.batch([
+      env.REPORTS.prepare("DELETE FROM reports WHERE run_id = ?").bind(runId),
+      env.REPORTS.prepare(
+        `INSERT INTO ledger (period, removed, d1_writes) SELECT ?, 1, 2 WHERE changes() > 0
          ON CONFLICT(period) DO UPDATE SET removed = removed + 1, d1_writes = d1_writes + 2`
-      ).bind(dayOf(now)).run();
-    }
+      ).bind(dayOf(now))
+    ]);
     return true;
   } catch (_) {
     return false;

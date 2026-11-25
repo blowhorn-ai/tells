@@ -87,13 +87,13 @@ export default {
         return json(body, 200, {}, reportCorsHeaders(request));
       }
 
-      // The collected total, always visible on the page. Cached for a minute so reads stay inside the free budget.
+      // The collected total, always visible on the page. Cached for five minutes; the figure is a sum over one ledger row per day, so a miss is cheap.
       if (url.pathname === "/api/stats" && request.method === "GET") {
         const cache = typeof caches !== "undefined" ? caches.default : null;
         const cacheKey = new Request(`${url.origin}/api/stats`);
         const cached = cache ? await cache.match(cacheKey) : null;
         if (cached) return cached;
-        const response = json(await collectionStats(env), 200, { "Cache-Control": "public, max-age=60" });
+        const response = json(await collectionStats(env), 200, { "Cache-Control": "public, max-age=300" });
         if (cache) ctx?.waitUntil?.(cache.put(cacheKey, response.clone()));
         return response;
       }

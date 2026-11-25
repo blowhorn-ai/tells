@@ -145,6 +145,41 @@ describe("compaction", () => {
     expect((await compactReports(env, T1)).compacted).toBe(1);
   });
 
+  it("commits aggregates, the mark and the ledger together, or not at all", async () => {
+    const { env, d1, r2 } = setup();
+    for (let i = 1; i <= 6; i += 1) await persistReport(env, report(), uuid(i), T0);
+    const before = d1.db.prepare("SELECT d1_writes AS w FROM ledger").get().w;
+    d1.stats.failBatchAt = 3;
+    await expect(compactReports(env, T1)).rejects.toThrow("batch failed");
+    d1.stats.failBatchAt = undefined;
+    expect(d1.db.prepare("SELECT COUNT(*) n FROM agg_counts").get().n).toBe(0);
+    expect(d1.db.prepare("SELECT COUNT(*) n FROM reports WHERE state = 0").get().n).toBe(6);
+    // The put that happened before the failure is already in the ledger.
+    expect(d1.db.prepare("SELECT r2_puts p FROM ledger").get().p).toBe(1);
+    expect(d1.db.prepare("SELECT d1_writes AS w FROM ledger").get().w).toBeGreaterThanOrEqual(before);
+    // The retry counts each run once.
+    expect((await compactReports(env, T1)).compacted).toBe(6);
+    expect(d1.db.prepare("SELECT n FROM agg_counts WHERE dim = 'total'").get().n).toBe(6);
+    expect(d1.db.prepare("SELECT n FROM agg_counts WHERE dim = 'reason' AND k = 'ua_mismatch'").get().n).toBe(6);
+    expect(r2.objects.size).toBe(1);
+    expect(d1.db.prepare("SELECT r2_puts p FROM ledger").get().p).toBe(2);
+  });
+
+  it("splits a chunk that would need too many statements, each batch atomic", async () => {
+    const { env, d1 } = setup();
+    const wide = (i) => report({
+      verdict: { score: 10 + (i % 80), classification: "likely_bot", risk: "high",
+        reasons: Array.from({ length: 6 }, (_, j) => ({ id: `r${i}_${j}`, severity: "high", points: 1 })) }
+    });
+    for (let i = 1; i <= 200; i += 1) await persistReport(env, wide(i), uuid(i), T0);
+    const result = await compactReports(env, T1);
+    expect(result.compacted).toBeGreaterThan(0);
+    for (const entry of d1.db.prepare("SELECT n FROM agg_counts WHERE dim = 'total'").all()) expect(entry.n).toBeGreaterThan(0);
+    // Whatever is left waits for the next run, and the totals add up once it has run.
+    for (let i = 0; i < 5; i += 1) await compactReports(env, T1);
+    expect(d1.db.prepare("SELECT SUM(n) s FROM agg_counts WHERE dim = 'total'").get().s).toBe(200);
+  });
+
   it("does nothing in off mode", async () => {
     const { env, r2 } = setup({ COLLECT_DISABLED: "1" });
     expect((await compactReports(env, T1)).mode).toBe("off");
@@ -180,6 +215,7 @@ describe("prune and total", () => {
     expect(d1.db.prepare("SELECT n FROM agg_counts WHERE dim = 'total'").get().n).toBe(1);
     const stats = await collectionStats(env, later);
     expect(stats).toMatchObject({ enabled: true, total_collected: 1, held_now: 0, since: "2026-11-25" });
+    expect(d1.db.prepare("SELECT SUM(pruned) p FROM ledger").get().p).toBe(1);
   });
 
   it("never deletes rows that are not aggregated yet", async () => {
@@ -189,11 +225,32 @@ describe("prune and total", () => {
     expect(d1.db.prepare("SELECT COUNT(*) n FROM reports").get().n).toBe(1);
   });
 
-  it("keeps the total when a visitor removes a run, and counts the removal", async () => {
+  it("keeps the total when a visitor removes a run, and counts the removal once", async () => {
     const { env } = setup();
     await persistReport(env, report(), uuid(1), T0);
+    await persistReport(env, report(), uuid(2), T0);
     await forgetReport(env, uuid(1), T0);
-    expect(await collectionStats(env, T0)).toMatchObject({ total_collected: 1, removed_on_request: 1, held_now: 0 });
+    await forgetReport(env, uuid(1), T0);
+    expect(await collectionStats(env, T0)).toMatchObject({ total_collected: 2, removed_on_request: 1, held_now: 1 });
+  });
+
+  it("does not count the runs that were only counted as held", async () => {
+    const { env, d1 } = setup();
+    d1.db.prepare("INSERT INTO ledger (period, accepted) VALUES ('2026-11-25', ?)").run(Math.ceil(0.96 * BUDGET.dailyReports));
+    await persistReport(env, report(), uuid(9), T0);
+    const stats = await collectionStats(env, T0);
+    expect(stats.total_collected).toBe(Math.ceil(0.96 * BUDGET.dailyReports) + 1);
+    expect(stats.held_now).toBe(Math.ceil(0.96 * BUDGET.dailyReports));
+  });
+
+  it("stats cost a read of the ledger only, never a scan of the reports", async () => {
+    const { env, d1 } = setup();
+    for (let i = 1; i <= 20; i += 1) await persistReport(env, report(), uuid(i), T0);
+    const seen = [];
+    const original = d1.prepare;
+    d1.prepare = (sql) => { seen.push(sql); return original(sql); };
+    await collectionStats(env, T0);
+    expect(seen.join(" ")).not.toMatch(/FROM reports/);
   });
 });
 
