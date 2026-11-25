@@ -46,5 +46,11 @@
       "database_id": "09f21bd2-596e-4cac-bf57-219dcaa3243a",
       "migrations_dir": "migrations"
     }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "RAW",
+      "bucket_name": "blowhorn-tells-raw"
+    }
   ]
 }
