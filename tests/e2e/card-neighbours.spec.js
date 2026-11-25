@@ -90,3 +90,32 @@ test("doc pages with five sections or fewer give each section its own variant", 
   }
   expect(short).toEqual(expect.arrayContaining(["/checks/", "/agents/"]));
 });
+
+test("insights keep neighbouring cards distinct for different result counts", async ({ page }) => {
+  let count = 0;
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.route("**/api/insights?*", (route) => route.fulfill({
+    json: {
+      enabled: true,
+      empty: false,
+      cards: Array.from({ length: count }, (_, i) => ({
+        id: i === 7 ? "countries" : `example-${i}`, title: "Insight", headline: "Example", sample: 1, window_days: 30, as_of: "2026-01-01",
+        data: { countries: [{ country: "US", share: 100 }, { country: "GB", share: 1 }] }
+      }))
+    }
+  }));
+  for (count = 1; count <= 9; count++) {
+    await page.goto("/insights/");
+    await expect(page.locator("#cards .insight")).toHaveCount(count);
+    await expect(page.locator("#cards .insight").first()).toHaveCSS("background-color", "rgb(20, 23, 15)");
+    await expect(page.locator("#cards .insight").first()).toHaveCSS("color", "rgb(255, 255, 255)");
+    if (count >= 8) await expect(page.locator("#card-countries .tiles li").last()).toHaveCSS("background-color", "rgb(166, 235, 223)");
+    const variants = await page.locator("main .card").evaluateAll((cards) =>
+      cards.map((card) => [...card.classList].find((name) => /^card-[a-z]+$/.test(name))));
+    if (variants.length <= 5) expect(new Set(variants).size).toBe(variants.length);
+    const backgrounds = await page.locator("main .card").evaluateAll((cards) =>
+      cards.map((card) => getComputedStyle(card).backgroundColor));
+    expect(backgrounds.filter((background, i) => i > 0 && background === backgrounds[i - 1])).toEqual([]);
+    expectNoSharedVariant(await page.evaluate(cardNeighbours));
+  }
+});

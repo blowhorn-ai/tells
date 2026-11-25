@@ -1,0 +1,68 @@
+/* The insights report. Blowhorn tokens come from /styles.css (teal, teal-bright, charcoal, near-black, yellow, cream). */
+.insights-page .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 20px 0; }
+.insights-page .toolbar [aria-pressed="true"] { background: var(--teal); color: var(--on-teal); border-color: var(--teal); }
+.insights-page .cards { display: grid; gap: 20px; margin-top: 20px; }
+.insights-page .insight h2 { margin: 4px 0 14px; font-size: clamp(1.25rem, 2.2vw, 1.7rem); }
+.insights-page .note { color: var(--teal-bright); }
+.insights-page .dim { color: var(--ink-muted); }
+.insights-page .claim-label { margin: 14px 0 8px; font-size: 0.85rem; color: var(--ink-muted); }
+.insights-page .hint { color: var(--ink-muted); font-size: 0.9rem; margin: 8px 0 0; }
+.insights-page .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.insights-page .status { color: var(--teal-bright); font-size: 0.9rem; }
+.insights-page .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.insights-page table { width: 100%; border-collapse: collapse; }
+.insights-page th[scope="row"] { text-align: left; font-weight: 600; padding: 6px 10px 6px 0; white-space: nowrap; max-width: 34ch; overflow: hidden; text-overflow: ellipsis; }
+.insights-page td, .insights-page thead th { padding: 6px 8px; }
+.insights-page thead th { text-align: left; color: var(--ink-muted); font-weight: 500; font-size: 0.85rem; }
+.insights-page .num { text-align: right; font-variant-numeric: tabular-nums; }
+.insights-page .bar-cell { width: 45%; }
+.insights-page .bar { display: block; height: 14px; width: var(--w); min-width: 2px; background: linear-gradient(90deg, var(--teal), var(--teal-bright)); border-radius: 3px; transition: width 0.4s ease; }
+.insights-page .pick { cursor: pointer; }
+.insights-page .pick:hover .bar, .insights-page .pick:focus-visible .bar, .insights-page .pick.is-focus .bar { background: var(--yellow); }
+.insights-page .pick:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.insights-page .as-table .bar-cell { display: none; }
+.insights-page .hist { display: flex; align-items: flex-end; gap: 6px; height: 140px; list-style: none; margin: 0 0 16px; padding: 0; }
+.insights-page .hist li { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; }
+.insights-page .hist .col { display: block; width: 100%; height: var(--h); min-height: 2px; background: linear-gradient(0deg, var(--teal), var(--teal-bright)); border-radius: 3px 3px 0 0; }
+.insights-page .hist .tick { font-size: 0.75rem; color: var(--ink-muted); margin-top: 4px; }
+.insights-page .as-table .hist { display: none; }
+.insights-page .big { font-family: "Bricolage Grotesque", system-ui, sans-serif; font-size: clamp(3rem, 8vw, 5rem); font-weight: 800; margin: 0; color: var(--teal-bright); line-height: 1; }
+.insights-page .big span { font-size: 0.5em; }
+.insights-page .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; list-style: none; margin: 0; padding: 0; }
+.insights-page .tiles li { background: linear-gradient(rgba(0, 179, 159, var(--a)), rgba(0, 179, 159, var(--a))), #A6EBDF; color: var(--on-teal); border-radius: 8px; padding: 10px 8px; display: flex; flex-direction: column; align-items: center; }
+.insights-page .as-table .tiles { display: block; }
+.insights-page .up { color: var(--yellow); }
+.insights-page .down { color: var(--teal-bright); }
+.insights-page .try { margin: 12px 0 4px; }
+.insights-page .fineprint { margin-top: 28px; color: var(--ink-muted); font-size: 0.9rem; }
+@media (prefers-reduced-motion: reduce) { .insights-page .bar { transition: none; } }
+
+/* Card surface, bundled here so the page never depends on an external stylesheet. */
+@layer insights-card-fallback {
+  .insights-page .card { background: var(--surface-raised); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-md, 14px); box-shadow: var(--shadow-soft); }
+  .insights-page .card-dispatch { background: var(--surface-deep); }
+  .insights-page .card-stamp { background: var(--surface-tint); }
+  .insights-page .card-field { background: color-mix(in srgb, var(--surface-tint), var(--surface-raised)); }
+  .insights-page .card-plain { background: var(--surface); }
+}
+.insights-page .card { padding: 24px; min-width: 0; overflow: hidden; }
+.insights-page .card-paper { background: var(--surface-raised); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-md, 14px); box-shadow: var(--shadow-soft); }
+.insights-page .card .label { margin: 0; color: var(--teal-bright); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.insights-page .chart { overflow-x: auto; max-width: 100%; }
+/* Every control in the share row looks and sizes the same, buttons and links alike. */
+.insights-page .actions > .button-primary, .insights-page .actions > .button-secondary {
+  display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-height: 44px; padding: 10px 16px;
+  border: 1px solid transparent; border-radius: var(--radius-md, 14px); font: inherit; font-weight: 600; text-decoration: none; color: var(--ink);
+}
+.insights-page .actions > .button-primary { color: var(--on-teal); }
+.insights-page .actions > a.button-secondary { background: linear-gradient(180deg, var(--glass-sheen), transparent 60%), var(--glass-fill); box-shadow: inset 0 0 0 1px var(--line-strong), var(--glass-shadow); }
+.insights-page .actions > a.button-secondary:hover { border-color: var(--line-strong); }
+.insights-page .actions > a.button-secondary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+@media (max-width: 480px) {
+  .insights-page .card { padding: 16px; }
+  .insights-page th[scope="row"] { white-space: normal; max-width: none; overflow-wrap: anywhere; }
+  .insights-page .bar-cell { width: 28%; }
+  .insights-page td, .insights-page thead th { padding: 6px 4px; }
+  .insights-page .actions > .button-primary, .insights-page .actions > .button-secondary { flex: 1 1 auto; }
+  .insights-page .plain-table { display: block; overflow-x: auto; }
+}

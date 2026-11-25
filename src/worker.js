@@ -8,6 +8,8 @@ import {
   RUN_HEADER
 } from "./report-catalog.js";
 import { BUDGET } from "./report-budget.js";
+import { WINDOWS, shareCardSvg } from "./insights.js";
+import { readInsightsPayload, refreshInsights } from "./insights-store.js";
 import { collectionStats, compactReports, pruneReports } from "./report-store.js";
 import {
   deriveBehavior,
@@ -87,6 +89,41 @@ export default {
         return json(body, 200, {}, reportCorsHeaders(request));
       }
 
+      // The insights report. Reads one precomputed row (rebuilt by the scheduled job), cached for an hour.
+      if (url.pathname === "/api/insights" && request.method === "GET") {
+        const days = Number(url.searchParams.get("window") || 30);
+        if (!WINDOWS.includes(days)) return json({ ok: false, error: `window must be one of ${WINDOWS.join(", ")}` }, 400);
+        if (!env.REPORTS) return json({ enabled: false, empty: true, cards: [] });
+        const cache = typeof caches !== "undefined" ? caches.default : null;
+        const cacheKey = new Request(`${url.origin}/api/insights?window=${days}`);
+        const cached = cache ? await cache.match(cacheKey) : null;
+        if (cached) return cached;
+        const stored = await readInsightsPayload(env, days);
+        const headers = { "Cache-Control": `public, max-age=${stored ? 3600 : 300}` };
+        const response = stored
+          ? new Response(stored, { status: 200, headers: { "Content-Type": "application/json; charset=utf-8", ...headers } })
+          : json({ enabled: true, empty: true, cards: [], sample: 0, window_days: days }, 200, headers);
+        if (cache) ctx?.waitUntil?.(cache.put(cacheKey, response.clone()));
+        return response;
+      }
+
+      // A shareable image for one insight card, as SVG. Cache first, then the same stored payload: never a scan.
+      const shareMatch = url.pathname.match(/^\/insights\/card\/([a-z]+)\.svg$/);
+      if (shareMatch && request.method === "GET") {
+        const days = Number(url.searchParams.get("window") || 30);
+        if (!WINDOWS.includes(days) || !env.REPORTS) return new Response("Not found", { status: 404 });
+        const cache = typeof caches !== "undefined" ? caches.default : null;
+        const cacheKey = new Request(`${url.origin}/insights/card/${shareMatch[1]}.svg?window=${days}`);
+        const cached = cache ? await cache.match(cacheKey) : null;
+        if (cached) return cached;
+        const stored = await readInsightsPayload(env, days);
+        const card = stored ? JSON.parse(stored).cards?.find((c) => c.id === shareMatch[1]) : null;
+        if (!card) return new Response("Not found", { status: 404, headers: { "Cache-Control": "public, max-age=300" } });
+        const response = new Response(shareCardSvg(card), { headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "public, max-age=3600" } });
+        if (cache) ctx?.waitUntil?.(cache.put(cacheKey, response.clone()));
+        return response;
+      }
+
       // The collected total, always visible on the page. Cached for five minutes; the figure is a sum over one ledger row per day, so a miss is cheap.
       if (url.pathname === "/api/stats" && request.method === "GET") {
         const cache = typeof caches !== "undefined" ? caches.default : null;
@@ -121,7 +158,8 @@ export default {
   async scheduled(controller, env, ctx) {
     const when = new Date(controller?.scheduledTime ?? Date.now());
     const work = (async () => {
-      await compactReports(env, when);
+      const compacted = await compactReports(env, when);
+      if (!compacted?.skipped && compacted?.mode !== "off") await refreshInsights(env, when);
       if (when.getUTCHours() === 3) await pruneReports(env, when);
     })();
     if (typeof ctx?.waitUntil === "function") ctx.waitUntil(work);

@@ -1682,3 +1682,7 @@ input:focus {
   margin-top: 4px;
   font-size: 0.85em;
 }
+
+.crowd-panel { margin-top: 16px; }
+.crowd-panel .crowd-reasons { margin: 8px 0; padding-left: 18px; }
+.crowd-panel .claim-label { font-size: 0.85rem; color: var(--ink-muted); }

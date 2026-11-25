@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="What the visitors of Blowhorn Tells reveal about browsers, automation tools and extensions: live, interactive, and shareable.">
+  <meta name="theme-color" content="#1E2117" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+  <title>Insights from the collected reports | Blowhorn Tells</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="/assets/fonts/BricolageGrotesque-Variable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/InstrumentSans-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="https://blowhorn.ai/assets/brand/cards.css">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/insights/insights.css">
+  <!-- Google Analytics: the same GA4 property as blowhorn.ai. No consent banner on this tool. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-2ZLYGVE3HN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-2ZLYGVE3HN');
+  </script>
+</head>
+
+<body>
+  <div class="ambient-grid" aria-hidden="true"></div>
+  <a class="skip-link" href="#main">Skip to the insights</a>
+  <header class="site-header">
+    <div class="wrap header-bar">
+      <a class="brand" href="https://blowhorn.ai/" aria-label="Blowhorn home">
+        <img class="logo-dark" src="/assets/brand/blowhorn-lockup-horizontal-on-dark.svg" alt="Blowhorn" width="176" height="44">
+        <img class="logo-light" src="/assets/brand/blowhorn-lockup-horizontal.svg" alt="" width="176" height="44">
+      </a>
+      <a class="product-name" href="/" aria-label="Tells, the bot detection test">Tells</a>
+      <nav class="site-nav" aria-label="Blowhorn">
+        <ul>
+          <li><a href="/">Test your browser</a></li>
+          <li><a href="/methodology/">Methodology</a></li>
+          <li><a href="https://github.com/blowhorn-ai/tells" target="_blank" rel="noopener noreferrer">Source</a></li>
+        </ul>
+      </nav>
+      <a class="button-primary site-cta" href="https://blowhorn.ai/download/">Get Blowhorn</a>
+    </div>
+  </header>
+
+  <main id="main" class="wrap doc-page insights-page">
+    <p class="eyebrow">Blowhorn Tells</p>
+    <h1>What the crowd of runs shows</h1>
+    <p class="lede">Every insight below is built from the reports visitors have run on this site. <strong id="total">0</strong> reports collected<span id="totalSince"></span>. Each claim states its sample, its window and what it can and cannot say. <span class="note">This is a sample of visitors, not the whole web.</span></p>
+
+    <div class="toolbar" role="group" aria-label="Time window">
+      <button type="button" class="button-secondary" data-window="7" aria-pressed="false">7 days</button>
+      <button type="button" class="button-secondary" data-window="30" aria-pressed="true">30 days</button>
+      <button type="button" class="button-secondary" data-window="90" aria-pressed="false">90 days</button>
+      <span id="windowNote" class="dim"></span>
+    </div>
+
+    <section class="card card-paper try" aria-labelledby="tryTitle">
+      <h2 id="tryTitle">Test your own browser</h2>
+      <p>Run the checks in your browser and see where you land against these runs: your score, and how common each tell you trigger is. To test an extension, run once, save the JSON, switch the extension on or off, run again, then diff the two files in the compare tool. The diff runs in your browser.</p>
+      <p class="actions">
+        <a class="button-primary" href="/?from=insights">Test my browser</a>
+        <a class="button-secondary" href="/compare/">Compare two runs</a>
+      </p>
+    </section>
+
+    <div id="cards" class="cards" aria-live="polite"></div>
+
+    <p class="fineprint">Reports are redacted before they are kept: no IP address, headers, fingerprint values or page address. Collection is on by default and can be switched off in the footer of the <a href="/">test page</a>. Figures refresh hourly. Quotes and images carry their sample size, window and date.</p>
+  </main>
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-panel card card-plain">
+        <div class="footer-top">
+          <div class="footer-brand">
+            <a class="footer-logo" href="https://blowhorn.ai/" aria-label="Blowhorn home">
+              <img class="logo-dark" src="/assets/brand/blowhorn-lockup-horizontal-on-dark.svg" alt="Blowhorn" width="200" height="50">
+              <img class="logo-light" src="/assets/brand/blowhorn-lockup-horizontal.svg" alt="" width="200" height="50">
+            </a>
+            <p class="footer-tagline">Your voice, at full volume.</p>
+            <p class="footer-about">Tells is a free check from the Blowhorn team. It shows what websites can read about your browser.</p>
+          </div>
+        </div>
+        <nav class="footer-cols" aria-label="Footer">
+          <div class="footer-col">
+            <h2 class="footer-title">Tells</h2>
+            <ul>
+              <li><a href="/#checks">Checks performed</a></li>
+              <li><a href="/checks/">What each check means</a></li>
+              <li><a href="/compare/">Compare two reports</a></li>
+              <li><a href="/insights/">Insights from the reports</a></li>
+              <li><a href="/agents/">For AI agents</a></li>
+              <li><a href="https://github.com/blowhorn-ai/tells">Source code</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h2 class="footer-title">Blowhorn</h2>
+            <ul>
+              <li><a href="https://blowhorn.ai/">What is Blowhorn</a></li>
+              <li><a href="https://blowhorn.ai/download/">Download</a></li>
+              <li><a href="https://blowhorn.ai/pricing/">Pricing</a></li>
+              <li><a href="https://blowhorn.ai/docs/">Docs</a></li>
+            </ul>
+          </div>
+        </nav>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Layer5, Inc.</span>
+      </div>
+    </div>
+  </footer>
+  <script type="module" src="/insights/insights.js"></script>
+</body>
+
+</html>
