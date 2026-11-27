@@ -2,7 +2,8 @@
 
 Issue: blowhorn-ai/tells#82 — Capture Tells output in Social Browser.
 Status: plan only. No fixture or manifest change is included in this PR; the
-promotion itself is Phase 2 below, gated on the decision in §3.
+promotion itself is Phase 2 below, gated on the decision in §3. Q1 resolved
+2026-11-26 (see §3); Q2 still needs Lee's decision.
 
 ## 1. Where things stand (verified)
 
@@ -76,6 +77,23 @@ If the probe is at fault, the fix belongs in the stability derivation
 the corrected derivation should re-score this capture to `likely_human`
 with no disallowed reasons before any promotion.
 
+**Q1 — Resolved 2026-11-26 (Prayas-35, PR #86 comment):** opt-in local
+diagnostic run in regular Chrome and Social Browser on the same Windows
+machine. Chrome returned the same unaltered value in the page, iframe,
+main-thread OffscreenCanvas, and worker. Social Browser altered only the
+top-level HTML canvas; its iframe and OffscreenCanvas readings exactly
+matched Chrome. Audio: same pattern — top-level altered, iframe matched.
+Voices: Chrome's iframe reached the full 24-voice list by 800 ms; Social
+Browser exposed 22 voices in the page and only 5 in the iframe, mismatch
+still present after 2 seconds. So the inconsistency is genuine Social
+Browser behaviour, not an artifact caused by Tells' controls:
+`controlAltered` is evidence of top-level modification, not the cause of
+the cross-context mismatch. Tells is correctly detecting realm-specific
+behaviour. Q1 resolves in favour of preserving the detection, leaving Q2
+as the remaining fixture-classification decision. Diagnostic reports
+attached to the PR comment (`chrome-diagnostic-1.json`,
+`social-browser-diagnostic-1.json`).
+
 **Q2 — If the inconsistency stands, what kind of fixture is this?** The
 manifest schema only allows `human` (must stay `likely_human`) and
 `automation` (must be caught). Social Browser is a real person's browser
@@ -93,16 +111,16 @@ the pair record. Recommendation: final report only.
 
 ## 4. Proposed sequence
 
-1. Answer Q1: investigate the control probe vs the stability derivation on
-   this capture. If the derivation is fixed, re-run the replay and confirm
-   `likely_human` with no disallowed reason ids.
-2. If Q1 resolves in favour of promotion, open the promotion PR: fixture
+1. Q1 answered 2026-11-26 (see §3): the inconsistency is genuine Social
+   Browser behaviour and the detection stands, so no derivation fix is
+   needed. Next step is Q2: pick a fixture kind for this capture.
+2. If Q2 resolves in favour of promotion, open the promotion PR: fixture
    file + manifest entry from `scripts/capture-fixture.mjs`, plus the
    screenshot staying on the issue (the corpus stores JSON only). The
    generated fixture and manifest entry are already verified locally and
    can be lifted straight into that PR.
-3. If Q1 does not resolve, answer Q2 instead, and implement whichever
-   option Lee picks.
+3. If Q2 picks option (c), the capture stays on the issue only and is not
+   promoted.
 4. Either way, the measured 51 → 71 stands as the Social Browser
    comparison data point; nothing in this plan re-runs the capture or pays
    for anything.
