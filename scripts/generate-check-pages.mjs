@@ -79,7 +79,7 @@ function header() {
           <li><a href="https://blowhorn.ai/">What is Blowhorn</a></li>
           <li><a href="https://blowhorn.ai/pricing/">Pricing</a></li>
           <li><a href="https://blowhorn.ai/docs/">Docs</a></li>
-          <li><a href="${REPO}" target="_blank" rel="noopener noreferrer">Source</a></li>
+          <li><a href="/insights/">Insights</a></li>
         </ul>
       </nav>
       <a class="button-primary site-cta" href="https://blowhorn.ai/download/">Get Blowhorn</a>
