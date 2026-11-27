@@ -77,7 +77,6 @@ function header() {
       <nav class="site-nav" aria-label="Blowhorn">
         <ul>
           <li><a href="https://blowhorn.ai/">What is Blowhorn</a></li>
-          <li><a href="https://blowhorn.ai/pricing/">Pricing</a></li>
           <li><a href="https://blowhorn.ai/docs/">Docs</a></li>
           <li><a href="/insights/">Insights</a></li>
         </ul>
@@ -117,7 +116,7 @@ function footer() {
             <ul>
               <li><a href="https://blowhorn.ai/">What is Blowhorn</a></li>
               <li><a href="https://blowhorn.ai/download/">Download</a></li>
-              <li><a href="https://blowhorn.ai/pricing/">Pricing</a></li>
+              <li><a href="https://blowhorn.ai/field-manual/">Field Manual</a></li>
               <li><a href="https://blowhorn.ai/docs/">Docs</a></li>
             </ul>
           </div>
