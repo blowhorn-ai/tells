@@ -1,3 +1,4 @@
+import { CARD_ART } from "./card-art.js";
 // The insights report (blowhorn-ai/tells#107): cards computed from the daily aggregates in agg_counts.
 // Everything here reads aggregate counts only. No card holds anything from one visitor.
 
@@ -151,7 +152,7 @@ export function shareCardSvg(card) {
   const lines = [];
   let line = "";
   for (const word of words) {
-    if ((line + " " + word).trim().length > 34) {
+    if ((line + " " + word).trim().length > 24) {
       lines.push(line);
       line = word;
     } else {
@@ -162,16 +163,18 @@ export function shareCardSvg(card) {
   if (lines.length > MAX_LINES) {
     // Cut at a word boundary and say so, never mid-sentence without a mark.
     const kept = lines.slice(0, MAX_LINES);
-    kept[MAX_LINES - 1] = `${kept[MAX_LINES - 1].replace(/[\s.,;:]+$/, "").slice(0, 31)}...`;
+    kept[MAX_LINES - 1] = `${kept[MAX_LINES - 1].replace(/[\s.,;:]+$/, "").slice(0, 21)}...`;
     lines.length = 0;
     lines.push(...kept);
   }
-  const body = lines.map((text, i) => `<text x="72" y="${250 + i * 70}" font-size="56" font-weight="700" fill="#FFFFFF">${esc(text)}</text>`).join("");
+  const body = lines.map((text, i) => `<text x="72" y="${250 + i * 70}" font-size="52" font-weight="700" fill="#FFFFFF">${esc(text)}</text>`).join("");
+  const src = CARD_ART[card.id];
+  const art = src ? `<image href="${src}" x="830" y="190" width="340" height="191" preserveAspectRatio="xMidYMid meet"/>` : "";
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="${esc(card.headline)}">
 <rect width="1200" height="630" fill="#1E2117"/>
 <rect x="0" y="0" width="16" height="630" fill="#00B39F"/>
 <text x="72" y="110" font-size="30" font-weight="700" fill="#00D3A9" font-family="Helvetica, Arial, sans-serif">${esc(card.title.toUpperCase())}</text>
-<g font-family="Helvetica, Arial, sans-serif">${body}</g>
+<g font-family="Helvetica, Arial, sans-serif">${body}</g>${art}
 <text x="72" y="560" font-size="24" fill="#D9DFDC" font-family="Helvetica, Arial, sans-serif">n = ${esc(card.sample.toLocaleString("en-US"))} runs, last ${esc(card.window_days)} days, as of ${esc(card.as_of)}</text>
 <text x="72" y="596" font-size="22" fill="#A3AEB2" font-family="Helvetica, Arial, sans-serif">${esc(SAMPLE_LABEL)}  Blowhorn Tells</text>
 </svg>`;

@@ -121,10 +121,18 @@ describe("insights routes", () => {
     expect(d1.queries.filter((q) => /FROM agg_counts/.test(q))).toHaveLength(0);
   });
 
+  it("puts exactly one cast image on each share card", () => {
+    for (const id of ["reasons", "verdicts", "pairs", "datacenter", "falsealarm", "browsers", "checks", "countries", "standouts"]) {
+      const svg = shareCardSvg({ id, title: "T", headline: "A headline", sample: 1, window_days: 7, as_of: "2026-11-27" });
+      expect((svg.match(/<image /g) || []).length).toBe(1);
+    }
+    expect(shareCardSvg({ id: "unknown", title: "T", headline: "A headline", sample: 1, window_days: 7, as_of: "2026-11-27" })).not.toContain("<image ");
+  });
+
   it("ends a long share headline with an ellipsis", () => {
     const svg = shareCardSvg({ id: "x", title: "T", headline: "word ".repeat(80), sample: 1, window_days: 7, as_of: "2026-11-25" });
     expect(svg).toContain("...");
-    expect((svg.match(/font-size="56"/g) || []).length).toBe(5);
+    expect((svg.match(/font-size="52"/g) || []).length).toBe(5);
   });
 
   it("answers empty without storage", async () => {
