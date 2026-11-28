@@ -88,6 +88,14 @@ Layer5 uses ES-Lint to maintain code quality & consistency in our UI Code.
 # <a name="maintaining"> Reviews</a>
 All contributors are invited to review pull requests. See this short video on [how to review a pull request](https://www.youtube.com/watch?v=isLfo7jfE6g&feature=youtu.be).
 
+# <a name="changing-how-a-check-scores">Changing how a check scores</a>
+
+Scoring lives in `src/report-verdict.js` (points, thresholds, category caps and the decisive markers), `public/behavior-score.js` (the behavior score) and `public/interaction-checks.js` (the interaction challenge). Open an issue first and say what you saw: the browser, the report, and why the score or class was wrong. A change should come with a test in `tests/` that fails before and passes after, and the output of `pnpm check` and `pnpm test`.
+
+# <a name="adding-a-new-check">Adding a new check</a>
+
+Every check has an entry in `schemas/check-catalog.json`. Add the entry, read the signal on the page or in the Worker, register any new reason id in `REASON_IDS` in `src/report-verdict.js` with a plain phrase in `public/checks-view-model.js`, and add tests. Run `node scripts/generate-check-pages.mjs` to regenerate the check pages, then `pnpm check` and `pnpm test`. A new check starts as informational where its false-alarm rate is unknown.
+
 # New to Git?
 Resources: https://lab.github.com and https://try.github.com/
 
