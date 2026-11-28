@@ -250,3 +250,14 @@ describe("high severity cap is named", () => {
     expect(verdict.classification_rule).toBe("high_severity_cap");
   });
 });
+
+describe("category caps", () => {
+  it("caps stacked network reasons and reports the cap", () => {
+    const verdict = scoreReport({
+      server: { userAgent: "Mozilla/5.0 Chrome/120", ipIntel: { normalized: { isTor: true, isProxy: true, isVpn: true, isCrawler: true } } }
+    });
+    const network = verdict.category_caps.find((cap) => cap.category === "network");
+    expect(network).toEqual({ category: "network", raw_points: 145, cap: 45 });
+    expect(verdict.score).toBe(100 - 45 - 25 * 0);
+  });
+});

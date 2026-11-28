@@ -196,6 +196,24 @@ export const DECISIVE_REASON_IDS = new Set([
   "synthetic_input"
 ]);
 
+// Several reasons measure the same underlying fact, so their points stack. Each group below can
+// take at most its cap off the score, so one cause cannot dominate and the rest of the score
+// keeps spreading. Decisive markers are not capped; they decide the class by themselves.
+export const CATEGORY_CAPS = Object.freeze({
+  network: {
+    cap: 45,
+    ids: ["datacenter_asn_heuristic", "ip_tor", "ip_proxy", "ip_vpn", "ip_datacenter", "ip_abuser", "ip_crawler", "ipqs_high_fraud_score", "managed_bot_score_low", "managed_bot_score_borderline", "cloudflare_verified_bot"]
+  },
+  platform: {
+    cap: 40,
+    ids: ["ua_platform_mismatch", "worker_platform_mismatch", "iframe_platform_mismatch", "request_client_ua_mismatch", "client_hint_platform_mismatch", "client_hint_mobile_mismatch", "client_hint_high_entropy_mismatch", "ua_data_high_entropy_mismatch", "mobile_touch_mismatch"]
+  },
+  headers: {
+    cap: 40,
+    ids: ["server_missing_ua", "proxy_headers", ...HEADER_REASON_IDS]
+  }
+});
+
 export function scoreReport(
   report,
   interaction = deriveInteraction(report.client?.interaction),
@@ -374,6 +392,15 @@ export function scoreReport(
 
   scoreInteraction(interaction, penalize, new Set(reasons.map((reason) => reason.id)));
 
+  const categoryCaps = [];
+  for (const [category, { cap, ids }] of Object.entries(CATEGORY_CAPS)) {
+    const members = new Set(ids);
+    const raw = reasons.filter((reason) => members.has(reason.id)).reduce((sum, reason) => sum + reason.points, 0);
+    if (raw > cap) {
+      score += raw - cap;
+      categoryCaps.push({ category, raw_points: raw, cap });
+    }
+  }
   score = Math.max(0, Math.min(100, Math.round(score)));
   let classification = score >= 75 ? "likely_human" : score >= 45 ? "suspicious" : "likely_bot";
   let classificationRule = "score";
@@ -391,7 +418,7 @@ export function scoreReport(
   }
   const risk = classification === "likely_human" ? "low" : classification === "suspicious" ? "medium" : "high";
 
-  return { score, classification, classification_rule: classificationRule, risk, reasons };
+  return { score, classification, classification_rule: classificationRule, risk, reasons, ...(categoryCaps.length ? { category_caps: categoryCaps } : {}) };
 }
 
 // A run long enough to have shown input, with zero input events observed. This is the same
