@@ -45,6 +45,7 @@
         "score": { "type": "integer", "minimum": 0, "maximum": 100 },
         "classification": { "enum": ["likely_human", "suspicious", "likely_bot"] },
         "risk": { "enum": ["low", "medium", "high"] },
+        "classification_rule": { "type": "string" },
         "reasons": {
           "description": "Scored findings. prototype_lie_mismatch is present only when Function.prototype.toString or a navigator.webdriver, languages, or plugins getter disagrees across the contexts that produced a reading: the page, a same-origin iframe, a Web Worker, and a Service Worker. A missing or failed Service Worker reading is skipped, the same as a null plugins reading. A patch that looks the same in every context keeps native_function_patched or prototype_getter_not_native.",
           "type": "array",
