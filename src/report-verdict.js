@@ -214,6 +214,26 @@ export const CATEGORY_CAPS = Object.freeze({
   }
 });
 
+// How much of the evidence a verdict actually rests on. A check that could not run is not a pass,
+// so it is listed here instead of being counted as clean.
+export function assessCoverage(report, behavior, interaction) {
+  const server = report.server || {};
+  const client = report.client || {};
+  const checks = {
+    ip_intelligence: Boolean(server.ipIntel?.normalized),
+    managed_bot_score: server.cloudflareBotManagement?.available === true,
+    webrtc: Array.isArray(client.network?.webrtc?.publicIps),
+    behavior: Boolean(client.behavior) && behavior != null && !isNoInputRun(behavior.summary),
+    interaction_challenge: interaction?.task?.completed === true
+  };
+  const checked = Object.keys(checks).filter((id) => checks[id]);
+  const unchecked = Object.keys(checks).filter((id) => !checks[id]);
+  // Behavior and the interaction challenge are the evidence a person produces; without either,
+  // a clean verdict is a statement about headers and fingerprints only.
+  const level = checked.length >= 4 ? "high" : checked.length >= 2 ? "medium" : "low";
+  return { level, checked, unchecked };
+}
+
 export function scoreReport(
   report,
   interaction = deriveInteraction(report.client?.interaction),
@@ -418,7 +438,7 @@ export function scoreReport(
   }
   const risk = classification === "likely_human" ? "low" : classification === "suspicious" ? "medium" : "high";
 
-  return { score, classification, classification_rule: classificationRule, risk, reasons, ...(categoryCaps.length ? { category_caps: categoryCaps } : {}) };
+  return { score, classification, classification_rule: classificationRule, risk, coverage: assessCoverage(report, behavior, interaction), reasons, ...(categoryCaps.length ? { category_caps: categoryCaps } : {}) };
 }
 
 // A run long enough to have shown input, with zero input events observed. This is the same

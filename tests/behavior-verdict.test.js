@@ -261,3 +261,17 @@ describe("category caps", () => {
     expect(verdict.score).toBe(100 - 45 - 25 * 0);
   });
 });
+
+describe("coverage", () => {
+  it("reports low coverage when nothing beyond headers could be checked", () => {
+    const verdict = scoreReport({ server: { userAgent: "Mozilla/5.0 Chrome/120" } });
+    expect(verdict.coverage.level).toBe("low");
+    expect(verdict.coverage.unchecked).toContain("ip_intelligence");
+    expect(verdict.coverage.unchecked).toContain("interaction_challenge");
+  });
+  it("lists the checks that ran", () => {
+    const verdict = scoreReport({ server: { userAgent: "Mozilla/5.0 Chrome/120", ipIntel: { normalized: {} }, cloudflareBotManagement: { available: true, score: 90 } } });
+    expect(verdict.coverage.checked).toEqual(["ip_intelligence", "managed_bot_score"]);
+    expect(verdict.coverage.level).toBe("medium");
+  });
+});
