@@ -318,6 +318,8 @@ export function computeBehavior(state, now = performance.now()) {
     pointerSpeedStdDev: pointer.pointerSpeedStdDev,
     rafStdDev: Math.round(standardDeviation(state.rafSamples.slice(-120)) * 1000) / 1000
   };
+  const touchEvents = state.events.filter((event) => event.pointerType === "touch").length;
+  if (touchEvents > 0) summary.touchEvents = touchEvents;
   return {
     score: scoreBehavior({ ...summary, interactionCompleted: interactionCompleted(state) }),
     checkpointsMs: BEHAVIOR_CHECKPOINTS_MS,

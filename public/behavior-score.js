@@ -13,13 +13,18 @@ export function scoreBehavior({
   pointerDistance = 0,
   pointerSpeedStdDev = 0,
   rafStdDev = 0,
+  touchEvents = 0,
   interactionCompleted = false
 }) {
   let score = 0.12;
   if (elapsedMs > 1200) score += 0.08;
   if (elapsedMs > 4000) score += 0.08;
-  if (pointerMoveSamples >= 5) score += 0.17;
-  if (pointerDistance > 120) score += 0.16;
+  // A touch session produces taps and swipes, not a mouse path, so the mouse-path features
+  // below can never be earned on a phone. Touch pointer events earn the same credit, and the
+  // two never stack: the best score is the same for either input kind.
+  const touchSession = touchEvents >= 4;
+  if (pointerMoveSamples >= 5 || touchSession) score += 0.17;
+  if (pointerDistance > 120 || touchEvents >= 8) score += 0.16;
   if (pointerSpeedStdDev > 0.02) score += 0.10;
   if ((eventCounts.click || 0) > 0 || (eventCounts.pointerdown || 0) > 0) score += 0.10;
   if ((eventCounts.keydown || 0) > 0) score += 0.08;
@@ -72,6 +77,8 @@ export function assessBehaviorEvidence(behavior, interactionCompleted = false) {
   }
 
   const { elapsedMs, eventCounts, pointerMoveSamples, pointerDistance, pointerSpeedStdDev, rafStdDev } = summary;
+  const touchEvents = summary.touchEvents === undefined ? 0 : summary.touchEvents;
+  if (!Number.isInteger(touchEvents) || touchEvents < 0) return { ok: false, problem: "malformed" };
   if (!nonNegativeFinite(elapsedMs)
     || !Number.isInteger(pointerMoveSamples) || pointerMoveSamples < 0
     || !nonNegativeFinite(pointerDistance)
@@ -111,7 +118,10 @@ export function assessBehaviorEvidence(behavior, interactionCompleted = false) {
   }
 
   const pointer = summarizePointerMoves(recentEvents);
+  const tailTouch = recentEvents.filter((event) => event.pointerType === "touch").length;
+  if (touchEvents > total || tailTouch > touchEvents) return { ok: false, problem: "inconsistent" };
   if (total <= BEHAVIOR_RECENT_EVENT_LIMIT) {
+    if (tailTouch !== touchEvents) return { ok: false, problem: "inconsistent" };
     for (const [type, count] of Object.entries(eventCounts)) {
       if ((tailCounts[type] || 0) !== count) return { ok: false, problem: "inconsistent" };
     }
@@ -131,6 +141,7 @@ export function assessBehaviorEvidence(behavior, interactionCompleted = false) {
       pointerDistance,
       pointerSpeedStdDev,
       rafStdDev,
+      touchEvents,
       interactionCompleted
     })
   };
