@@ -185,6 +185,17 @@ export function enrichClientConsistency(client, server) {
   return { ...client, consistency };
 }
 
+// Reasons that are certain automation markers, not suggestions. Each one alone means likely_bot.
+export const DECISIVE_REASON_IDS = new Set([
+  "navigator_webdriver",
+  "client_headless_user_agent",
+  "automation_globals",
+  "document_automation_keys",
+  "webdriver_own_property",
+  "webdriver_getter_patched",
+  "synthetic_input"
+]);
+
 export function scoreReport(
   report,
   interaction = deriveInteraction(report.client?.interaction),
@@ -365,14 +376,22 @@ export function scoreReport(
 
   score = Math.max(0, Math.min(100, Math.round(score)));
   let classification = score >= 75 ? "likely_human" : score >= 45 ? "suspicious" : "likely_bot";
-  // A high severity finding caps the verdict at suspicious, whatever the score: a run
-  // carrying a high finding never reads as human.
-  if (classification === "likely_human" && reasons.some((reason) => reason.severity === "high")) {
+  let classificationRule = "score";
+  // Certain automation markers decide the class on their own: a page that reports
+  // navigator.webdriver or a headless UA is automated, whatever else scored well.
+  const decisive = reasons.find((reason) => DECISIVE_REASON_IDS.has(reason.id));
+  if (decisive) {
+    classification = "likely_bot";
+    classificationRule = `decisive:${decisive.id}`;
+  } else if (classification === "likely_human" && reasons.some((reason) => reason.severity === "high")) {
+    // Any other high severity finding caps the verdict at suspicious. The rule is
+    // named in the output so a score of 75 or more with this class is explained.
     classification = "suspicious";
+    classificationRule = "high_severity_cap";
   }
   const risk = classification === "likely_human" ? "low" : classification === "suspicious" ? "medium" : "high";
 
-  return { score, classification, risk, reasons };
+  return { score, classification, classification_rule: classificationRule, risk, reasons };
 }
 
 // A run long enough to have shown input, with zero input events observed. This is the same

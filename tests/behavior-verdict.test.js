@@ -226,3 +226,27 @@ describe("server-derived behaviour score", () => {
     expect(body.verdict.classification).toBe("likely_human");
   });
 });
+
+describe("decisive markers and the named classification rule", () => {
+  const base = () => ({ server: { userAgent: "Mozilla/5.0 Chrome/120" }, client: { browser: {} } });
+  it("classifies navigator.webdriver alone as likely_bot with the rule named", () => {
+    const report = base();
+    report.client.browser.webdriver = true;
+    const verdict = scoreReport(report);
+    expect(verdict.classification).toBe("likely_bot");
+    expect(verdict.classification_rule).toBe("decisive:navigator_webdriver");
+  });
+  it("names the score rule when nothing overrides it", () => {
+    const verdict = scoreReport({ server: { userAgent: "Mozilla/5.0 Chrome/120" } });
+    expect(verdict.classification_rule).toBe("score");
+  });
+});
+
+describe("high severity cap is named", () => {
+  it("says high_severity_cap when a 75+ score is held at suspicious", () => {
+    const verdict = scoreReport({ server: { userAgent: "Mozilla/5.0 Chrome/120" }, client: { browser: {} } });
+    expect(verdict.score).toBeGreaterThanOrEqual(75);
+    expect(verdict.classification).toBe("suspicious");
+    expect(verdict.classification_rule).toBe("high_severity_cap");
+  });
+});
